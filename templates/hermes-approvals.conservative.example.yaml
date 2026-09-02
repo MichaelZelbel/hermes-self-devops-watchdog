@@ -1,0 +1,65 @@
+# Hermes approvals for the WATCHDOG profile, conservative.
+#
+# The operator looks, reports and asks. It repairs nothing; the shell floor
+# does the one repair (restart the gateway). Apply with the profile selected:
+#
+#   export HERMES_HOME="$HOME/.hermes/profiles/watchdog"
+#   hermes config set approvals.deny '<the list below as a JSON array>'
+#   hermes config get approvals.deny        # one "- " entry per line, or it is NOT on
+#   hermes approvals test "hermes update"   # exit 3 = refused
+#   hermes approvals test "git status"      # exit 0 = allowed
+#
+# Patterns are matched against the whole command line. Unattended runs are
+# refused a dangerous command rather than left waiting; nothing here changes that.
+
+approvals:
+  deny:
+    # the machine
+    - "*rm -rf*"
+    - "*rm -r *"
+    - "*shred *"
+    - "*kill *"
+    - "*pkill *"
+    - "*killall *"
+    - "*reboot*"
+    - "*shutdown *"
+    - "*ufw *"
+    - "*iptables *"
+    - "*nft *"
+    - "*systemctl restart ssh*"
+    - "*systemctl stop ssh*"
+    - "*systemctl disable ssh*"
+    - "*userdel *"
+    - "*usermod *"
+    - "*passwd *"
+    - "*apt *"
+    - "*apt-get *"
+    - "*chmod 777*"
+    - "*curl * | *sh*"
+    - "*wget * | *sh*"
+    # Hermes itself, its own profile and the gateway's
+    - "*hermes update*"
+    - "*hermes setup*"
+    - "*hermes model*"
+    - "*hermes auth*"
+    - "*hermes login*"
+    - "*hermes logout*"
+    - "*hermes config set*"
+    - "*hermes gateway install*"
+    - "*hermes gateway uninstall*"
+    - "*hermes gateway stop*"
+    - "*hermes cron create*"
+    - "*hermes cron remove*"
+    - "*hermes cron update*"
+    - "*hermes cron pause*"
+    - "*hermes mcp *"
+    - "*hermes profile delete*"
+    - "*hermes uninstall*"
+    # the conservative difference: no restarts, no journal cleanup by the operator
+    - "*hermes gateway restart*"
+    - "*systemctl restart hermes*"
+    - "*journalctl --vacuum*"
+    # secrets
+    - "*cat *auth.json*"
+    - "*cat *.env*"
+    - "*cat *config.yaml*"

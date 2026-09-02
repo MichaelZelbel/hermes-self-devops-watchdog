@@ -1,0 +1,60 @@
+# Hermes approvals for the WATCHDOG profile, autonomous DevOps.
+#
+# Same as the conservative template, minus three lines: the operator may
+# restart a managed gateway once (with verification, per the runbook) and may
+# vacuum the systemd journal under critical disk pressure. Move to this only
+# after the conservative flow has run for a while and you have read its reports.
+#
+#   export HERMES_HOME="$HOME/.hermes/profiles/watchdog"
+#   hermes config set approvals.deny '<the list below as a JSON array>'
+#   hermes config get approvals.deny
+#   hermes approvals test "hermes gateway restart"   # exit 0 or 2 here, 3 under conservative
+#   hermes approvals test "hermes update"            # still exit 3
+
+approvals:
+  deny:
+    # the machine
+    - "*rm -rf*"
+    - "*rm -r *"
+    - "*shred *"
+    - "*kill *"
+    - "*pkill *"
+    - "*killall *"
+    - "*reboot*"
+    - "*shutdown *"
+    - "*ufw *"
+    - "*iptables *"
+    - "*nft *"
+    - "*systemctl restart ssh*"
+    - "*systemctl stop ssh*"
+    - "*systemctl disable ssh*"
+    - "*userdel *"
+    - "*usermod *"
+    - "*passwd *"
+    - "*apt *"
+    - "*apt-get *"
+    - "*chmod 777*"
+    - "*curl * | *sh*"
+    - "*wget * | *sh*"
+    # Hermes itself, its own profile and the gateway's
+    - "*hermes update*"
+    - "*hermes setup*"
+    - "*hermes model*"
+    - "*hermes auth*"
+    - "*hermes login*"
+    - "*hermes logout*"
+    - "*hermes config set*"
+    - "*hermes gateway install*"
+    - "*hermes gateway uninstall*"
+    - "*hermes gateway stop*"
+    - "*hermes cron create*"
+    - "*hermes cron remove*"
+    - "*hermes cron update*"
+    - "*hermes cron pause*"
+    - "*hermes mcp *"
+    - "*hermes profile delete*"
+    - "*hermes uninstall*"
+    # secrets
+    - "*cat *auth.json*"
+    - "*cat *.env*"
+    - "*cat *config.yaml*"

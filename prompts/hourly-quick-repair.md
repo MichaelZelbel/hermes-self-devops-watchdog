@@ -1,6 +1,7 @@
 # Prompt: Hermes Hourly Quick Repair
 
-You are Claude Code acting as the operator's DevOps agent for Hermes.
+You are Hermes, running under the `watchdog` profile, acting as the operator's DevOps agent for the
+Hermes gateway on this machine.
 
 Read and follow this runbook first:
 
@@ -8,66 +9,59 @@ Read and follow this runbook first:
 
 ## Task
 
-Run the quick health check and safe repair flow.
+Run the quick health check and safe repair flow. The shell floor has already restarted a dead gateway
+if it had to; your job is to find out whether that was needed, why, and whether anything else is wrong.
 
 ## Checks
 
-1. Confirm the host is reachable and commands can run.
-2. Check Hermes status:
-   - `hermes status`
-   - `hermes gateway status`
-3. Check obvious Hermes errors:
-   - `hermes logs --since 1h`
-   - `hermes logs errors --since 24h`
-4. Check scheduled jobs when relevant:
-   - `hermes cron list`
-5. Check process state:
-   - `ps -eo pid,cmd --sort=pid | grep -Ei '[h]ermes|gateway|telegram|discord|whatsapp'`
-6. Check obvious host pressure:
-   - `df -h`
-   - `df -i`
-   - `free -h`
-   - `uptime`
+1. Confirm commands can run.
+2. Gateway: `hermes gateway status`, `hermes status`.
+3. Clock: `hermes cron status`, and `hermes cron incidents` for anything that broke.
+4. Errors: `hermes logs --since 1h`, `hermes logs errors --since 24h`.
+5. Process state: `ps -eo pid,cmd --sort=pid | grep -Ei '[h]ermes|gateway|telegram|discord|whatsapp'`.
+6. Host pressure: `df -h`, `df -i`, `free -h`, `uptime`.
+7. The floor's own record: the last lines of `/var/log/hermes-watchdog/quick.log` and
+   `/var/log/hermes-watchdog/selftest.log`. A restart there is a finding to explain, not a success.
 
-## Liveness signals — what counts as "the gateway is down"
+## Liveness signals: what counts as "the gateway is down"
 
-A healthy gateway can be completely silent for hours. Use activity-INDEPENDENT signals only. Do NOT treat log silence as failure.
+A healthy gateway can be silent for hours. Use activity-independent signals only. Do not treat log
+silence as failure.
 
-OK to use as failure signals:
+Failure signals:
 
-- `systemctl is-active hermes-gateway.service` returns inactive/failed.
-- `hermes gateway status` returns non-zero (only if it is a real probe on this version; verify before relying on it).
-- The Hermes process exists but holds no outbound `:443` connection (poll/long-poll mode is broken).
-- "Connected to Telegram" (or the analogous handshake line for the configured platform) is absent from `agent.log*` after the last service start.
+- The gateway's unit is inactive or failed, and `hermes gateway status` agrees.
+- The gateway process holds no outbound `:443` connection.
+- The platform handshake line ("Connected to Telegram", or the analogous line) is absent from
+  `agent.log*` after the last service start.
 - `hermes logs errors --since 1h` shows repeated unrecovered errors.
 
-DO NOT use as failure signals:
+Not failure signals:
 
-- `agent.log` mtime / file age. An idle Hermes with no chat traffic legitimately writes nothing for many hours; restarting on this signal will kick a healthy gateway every ~6 h and is the most common false-positive in homemade watchdogs.
-- "no messages today" or "low token count today" without a delivery failure to attribute it to.
-- A single transient probe failure — re-check once (sleep ~10 s, probe again) before declaring degraded.
+- `agent.log` age. An idle Hermes writes nothing for hours and is healthy.
+- "no messages today" without a delivery failure to attribute it to.
+- A single transient probe failure. Re-check once before declaring degraded.
+- `systemctl is-active` alone: a cleanly stopped gateway reads "failed" there.
 
-A reference implementation is shipped at `templates/quick-check.sh`. If you regenerate this script, mirror those signals; if you are tempted to add a "log freshness" check, re-read this section.
+The floor (`floor/quick-check.sh`) implements these signals. Do not add a log-freshness check.
 
 ## Auto-repair
 
-If the messaging gateway is inactive, failed, or unreachable, and the gateway is installed as a managed Hermes service:
+If the gateway is inactive, failed or unreachable, and it is an installed Hermes-managed service:
 
 1. Record the failure evidence.
-2. Run:
-   - `hermes gateway restart`
-3. Re-check:
-   - gateway status,
-   - Hermes status,
-   - recent logs,
-   - process state.
-4. If still broken, do not loop forever. Escalate with evidence.
+2. `hermes gateway restart` (the `--system` form when the unit is a system one and you hold that
+   right).
+3. Re-check gateway status, Hermes status, recent logs, process state.
+4. Still broken: do not loop. Escalate with evidence.
 
-If Hermes is running as a foreground process, Docker/TTY process, tmux/screen process, or unknown supervisor, do not kill or restart it. Escalate with evidence and ask the operator.
+If Hermes runs as a foreground process, in Docker, in tmux or screen, or under an unknown supervisor:
+do not kill or restart it. Escalate with evidence.
 
 ## Output rules
 
-- If everything is healthy: produce a short local run note only; do not notify the operator unless the scheduling platform requires a visible result.
-- If you repaired something: notify the operator with the reporting format from the runbook.
-- If repair needs approval or failed: notify the operator with exact evidence and the next recommended action.
-- Never expose secrets, tokens, chat IDs, or private config values.
+- Healthy: a short local run note only; send nothing.
+- Repaired: notify the operator in the runbook's format, through `templates/notify.sh`.
+- Repair needs approval or failed: notify with exact evidence and the next recommended action.
+- The first line of any alert is the self-check result.
+- Never expose secrets, tokens, chat ids or private config values.

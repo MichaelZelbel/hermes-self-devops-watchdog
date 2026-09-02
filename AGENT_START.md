@@ -1,67 +1,87 @@
-# Agent Start: Hermes Watchdog
+# Agent Start: Hermes Self Watchdog
 
-Use this file as the starting point when asking Claude Code to configure itself as a watchdog for a Hermes Agent server.
+Use this file as the starting point when asking a Hermes profile to configure itself as the DevOps
+watchdog for the Hermes Agent server it lives on.
 
 ## Goal
 
-Configure Claude Code as a safe DevOps watchdog for Hermes Agent on this server.
+Configure this Hermes profile as a safe DevOps watchdog for the Hermes gateway on this machine.
 
-Claude Code should help configure local VPS checks that periodically verify Hermes health, messaging gateway health, scheduled jobs, provider authentication, and host pressure; perform only clearly safe repairs; and escalate risky changes to the operator.
+The watchdog periodically verifies gateway health, scheduled jobs, provider authentication and host
+pressure; performs only clearly safe repairs; and escalates risky changes to the operator. The checks
+that must never fail are shell scripts on the machine's own cron, not you. You are the diagnosis and
+the bounded repair on top of that floor.
+
+## What is different about watching yourself
+
+You share a runtime, a config store, a credential store, an update channel and a model provider with
+the thing you watch. When the provider is down, or the shared sign-in has expired, you cannot answer
+either. So:
+
+1. The floor (`floor/quick-check.sh`) restarts a dead gateway without you.
+2. The self-check (`templates/selftest.sh`) asks you to say one word every five minutes, and alerts
+   **SELF-HEALING IS DOWN** when you cannot. Never disable it.
+3. Your own runs are one-shots (`hermes -z`) under this profile, and the wrapper judges them by their
+   **output**, because a one-shot that reached no model exits 0.
 
 ## First steps
 
 1. Read these files in this repository:
    - `README.md`
-   - `CLAUDE.md`
+   - `AGENTS.md`
    - `hermes-devops-runbook.md`
-   - `docs/local-cron-telegram.md`
+   - `docs/architecture.md`
    - `prompts/hourly-quick-repair.md`
 
-2. Confirm where Claude Code is running:
-   - directly on the Hermes VPS, or
-   - on another trusted machine that can SSH into the VPS.
+2. Confirm which profile you are. `hermes profile list` shows the active one. You should be the
+   `watchdog` profile, not the default one the gateway runs under. If you are the default profile,
+   stop and tell the operator: the watchdog needs its own profile so its memory and sessions never
+   mix with the gateway's.
 
-3. Identify the Hermes installation and data paths without revealing secrets. Common paths:
-   - `/opt/hermes`
-   - `/opt/data`
-   - `~/.hermes`
+3. Identify the Hermes installation without revealing secrets. Common paths: `~/.hermes` (or
+   `HERMES_HOME`), `~/.local/bin/hermes`, `/etc/systemd/system/hermes-gateway.service` for a system
+   unit or `~/.config/systemd/user/hermes-gateway.service` for a user unit.
 
 4. Run a manual dry run of the quick repair workflow.
 
-5. If the dry run succeeds, propose a local cron or systemd timer setup. Do not use Claude Code `/schedule` as the default runner, because scheduled Claude Code agents are remote by default and cannot access this VPS without an explicit connector such as SSH or MCP.
+5. If the dry run succeeds, propose the machine's cron lines from `templates/cron.example`. Do not
+   propose `hermes cron` for the floor or the self-check: the gateway's own clock stops when the
+   gateway does, which is exactly the moment the floor must run.
 
 ## Safety boundaries
 
 Do not do any of these without explicit operator approval:
 
 - Change firewall, SSH, Tailscale, public exposure, or auth settings.
-- Rotate, reveal, or copy secrets/tokens.
+- Rotate, reveal, or copy secrets or tokens.
 - Delete data, sessions, memories, logs, backups, or provider auth files.
-- Install/remove OS packages.
+- Install or remove OS packages.
 - Reboot the server.
 - Update Hermes.
-- Change Hermes config, model/provider defaults, tool permissions, platform tokens, cron jobs, webhooks, or MCP servers.
+- Change Hermes config, model or provider defaults, approvals, platform tokens, cron jobs, webhooks
+  or MCP servers, in your own profile or the gateway's.
 
 Read-only checks are allowed.
 
-If the Hermes messaging gateway is clearly down and Hermes is installed as a managed service, Claude Code may restart only the gateway once:
+If the gateway is clearly down and it is installed as a managed service, you may restart it once:
 
 ```bash
-hermes gateway restart
+hermes gateway restart          # user service
+sudo hermes gateway restart --system   # system service, only if you have that right
 ```
 
-After restarting, verify the gateway and report what happened.
+After restarting, verify with `hermes gateway status` and report what happened.
 
-If Hermes is running as a foreground process, inside tmux/screen, Docker, or an interactive terminal, do not kill or restart that process without operator approval. Collect evidence and ask first.
+If Hermes is running as a foreground process, inside tmux or screen, in Docker, or in an interactive
+terminal, do not kill or restart that process. Collect evidence and ask first.
 
 ## Manual dry-run checks
-
-Run these checks first:
 
 ```bash
 hermes status
 hermes doctor
 hermes gateway status
+hermes cron status
 hermes cron list
 hermes logs --since 1h
 hermes logs errors --since 24h
@@ -72,24 +92,27 @@ free -h
 uptime
 ```
 
-Do not print secrets from `.env`, `auth.json`, provider credential files, Telegram tokens, or chat transcripts.
+Do not print secrets from `.env`, `auth.json`, provider credential files, Telegram tokens, or chat
+transcripts.
 
 ## Report back
 
 After the dry run, report:
 
-1. whether Hermes and the messaging gateway are healthy,
+1. whether the gateway is healthy, read from Hermes and not from systemd alone,
 2. which commands worked,
 3. any warnings or blockers,
 4. whether this environment is suitable for scheduled watchdog runs,
 5. which schedule you recommend.
 
-## Recommended local schedule
+## Recommended schedule
 
-Start conservatively with local cron or a systemd timer:
+All on the machine's cron, as the Hermes user:
 
-- every 5 minutes, or hourly: quick health check and safe gateway repair workflow,
-- every 6 hours: deeper Hermes/host/provider/cron/log check,
-- weekly or manual: update maintenance check.
+- every 5 minutes: `floor/quick-check.sh` and `templates/selftest.sh`,
+- hourly: the quick repair prompt, as a one-shot under this profile,
+- every 6 hours: the deep check prompt,
+- weekly or by hand: the update maintenance prompt.
 
-Every scheduled task must be quiet when healthy and notify the operator only for a repair, incident, or approval request.
+Every scheduled task is quiet when healthy and speaks only for a repair, an incident, or an approval
+request, through `templates/notify.sh`.

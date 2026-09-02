@@ -1,0 +1,21 @@
+# The machine's own cron, as the Hermes (gateway) user. Not hermes cron: that
+# clock lives inside the gateway and stops with it.
+#
+# Assumes the checkout at /opt/hermes-watchdog and the floor fetched once with
+#   /opt/hermes-watchdog/floor/fetch-floor.sh
+#
+# quick-check.sh's defaults assume the Hermes user is "hermes"; set HERMES_USER,
+# HERMES_HOME and HERMES_BIN if yours differs (see the header of the fetched file).
+
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HERMES_USER=hermes
+
+# 1. the floor: is the gateway alive? restart once if not
+*/5 * * * *  /opt/hermes-watchdog/floor/quick-check.sh
+# 2. the self-check: can the watchdog Hermes answer one word?
+*/5 * * * *  /opt/hermes-watchdog/templates/selftest.sh
+# 3. the operator: diagnose, repair within bounds, report
+7 * * * *    /opt/hermes-watchdog/templates/run-prompt.sh hourly-quick-repair
+23 */6 * * * /opt/hermes-watchdog/templates/run-prompt.sh six-hour-deep-check
+# weekly update check, only if the operator has approved automatic updates
+# 41 4 * * 1  /opt/hermes-watchdog/templates/run-prompt.sh update-maintenance
