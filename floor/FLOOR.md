@@ -54,3 +54,9 @@ Pinned since 2026-09-02 at upstream `2abd1c2` (main): probe B reads the unit's o
 falling back to `pgrep`. On a host running several Hermes gateways as one user the old lookup judged a
 healthy unit by another gateway's sockets and restarted it on the first tick; found on the author's
 fourteen-gateway server the day the kit went on its pager.
+
+Pinned since 2026-09-02 (later the same day) at upstream `d7e26ca` (main): probe C reads the rotated
+`agent.log.1` before the current log, so the newest "Connected" line is the one compared against the start
+time. The old order returned a days-old line after any restart on a host with a rotated log, and the floor
+restarted a healthy, connected gateway on every tick: four restarts in seventeen minutes on the author's
+server before it was caught.
