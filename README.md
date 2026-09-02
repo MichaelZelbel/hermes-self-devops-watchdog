@@ -109,7 +109,10 @@ exists to catch. See `templates/selftest.sh`.
 - `templates/hermes-approvals.conservative.example.yaml` and
   `templates/hermes-approvals.autonomous-devops.example.yaml`: the leash for the watchdog profile.
 - `templates/cron.example`: the machine's crontab lines.
-- `docs/architecture.md`, `docs/approvals.md`, `docs/troubleshooting.md`, `docs/alerts.md`.
+- `docs/architecture.md`, `docs/approvals.md`, `docs/troubleshooting.md`, `docs/alerts.md`, and
+  `docs/root-and-service-user.md` for a system unit run as a service user (the book's server layout):
+  the floor from root's cron, the operator and the alerts as the service user through `OPERATOR_CMD`
+  and `SEND_CMD`.
 - `tests/`: shell tests for the probes and the guards, no network, safe anywhere.
 
 ## Support this project

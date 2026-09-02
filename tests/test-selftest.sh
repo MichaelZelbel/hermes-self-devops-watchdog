@@ -79,5 +79,15 @@ rc=$(HERMES_BIN="$W/bin/none" WATCHDOG_HOME="$W/wd" LOG_FILE="$W/log/s.log" STAT
 rc=$(HERMES_BIN="$W/bin/hermes" WATCHDOG_HOME="$W/nope" LOG_FILE="$W/log/s.log" STATE_DIR="$W/state" NOTIFY="$W/bin/notify.sh" bash "$HERE/templates/selftest.sh" >/dev/null 2>&1; echo $?)
 [ "$rc" = "20" ] && grep -q "hermes profile create watchdog" "$NOTIFY_LOG" && ok "15 a missing profile is DOWN and names the command" || bad "15 missing profile not handled"
 
+# 16. OPERATOR_CMD: the probe runs THROUGH the prefix (root's cron over a service user).
+cat > "$W/bin/prefix.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "prefix-used $*" >> "$PREFIX_LOG"
+exec "$@"
+EOF
+chmod +x "$W/bin/prefix.sh"; export PREFIX_LOG="$W/prefix.log"; : > "$PREFIX_LOG"
+rc=$(STUB_MODE=ok OPERATOR_CMD="$W/bin/prefix.sh" HERMES_BIN="$W/bin/hermes" WATCHDOG_HOME="$W/does-not-exist-for-root" PROBE_TIMEOUT=2 LOG_FILE="$W/log/s.log" STATE_DIR="$W/state" NOTIFY="$W/bin/notify.sh" bash "$HERE/templates/selftest.sh" >/dev/null 2>&1; echo $?)
+[ "$rc" = "0" ] && grep -q "prefix-used .*hermes -z" "$PREFIX_LOG" && ok "16 OPERATOR_CMD runs the one-shot through the prefix, and a profile dir unreadable to root is not a failure" || bad "16 OPERATOR_CMD not honoured" "rc=$rc $(cat "$PREFIX_LOG")"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
