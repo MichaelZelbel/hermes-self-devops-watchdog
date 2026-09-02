@@ -26,7 +26,7 @@ A commit, not a branch or a tag, because branches move and tags can be moved; a 
 file URL is a network fetch and the thing that restarts your gateway deserves to be verified before it
 runs. That commit is the upstream's `v1.1.0` content (the order-independent `:443` liveness probe,
 which fixed a false "degraded" on healthy idle gateways) plus one guard, on the upstream branch
-`floor/no-platform-guard` pending its merge to `main`: when the Hermes `.env` holds no messaging
+`floor/no-platform-guard`, merged to `main` on 2026-09-02 (main is 607e798): when the Hermes `.env` holds no messaging
 platform token, probes B and C are skipped, because a gateway with no platform holds no `:443`
 connection and logs no handshake, and the floor would otherwise restart a healthy gateway on every
 tick. Measured on 2026-09-02 on a Telegram-less test gateway before the guard existed.
