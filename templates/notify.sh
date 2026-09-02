@@ -31,6 +31,14 @@ SUBJECT="${SUBJECT:-Hermes watchdog}"
 SEND_CMD="${SEND_CMD:-}"
 LOG_FILE="${LOG_FILE:-/var/log/hermes-watchdog/notify.log}"
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+# The operator's own session calls this as the service user, whose writes into
+# root's log directory fail. Fall back to a log the caller can write, and say so
+# on stderr, rather than losing the record of an alert.
+if ! { : >> "$LOG_FILE"; } 2>/dev/null; then
+  LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/hermes-watchdog/notify.log"
+  mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+  echo "notify: log falls back to $LOG_FILE (the default is not writable by $(id -un))" >&2
+fi
 ts()  { date -u +%Y-%m-%dT%H:%M:%SZ; }
 log() { printf '%s | %s\n' "$(ts)" "$*" >> "$LOG_FILE"; }
 

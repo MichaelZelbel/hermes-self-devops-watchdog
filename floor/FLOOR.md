@@ -15,8 +15,8 @@ lines differed, and `kit-bootstrap` exists to end that.
 `floor/PIN` names a commit and the SHA-256 of the file at that commit:
 
 ```text
-COMMIT=c8a38d9d17e6b864e035bfffac22a6a7e3b53052
-SHA256=01eeb1109f0e5daae4f28980cf525f585b8fbe10ecc9dacd7a334f85dd6b7b35
+COMMIT=607e798fd68d254cd5006fe3041e8d9df9e6cad5
+SHA256=2436985f3201d411416e117acc1785b9f4d06941dcfabc57a6e1eca94aa36839
 ```
 
 `floor/fetch-floor.sh` downloads the file at exactly that commit and refuses it unless the hash
@@ -24,8 +24,12 @@ matches. Nothing is written on a mismatch. The fetched copy, `floor/quick-check.
 
 A commit, not a branch or a tag, because branches move and tags can be moved; a hash, because a raw
 file URL is a network fetch and the thing that restarts your gateway deserves to be verified before it
-runs. That commit is the same content as the upstream's `v1.1.0` tag: the order-independent `:443`
-liveness probe, which fixed a false "degraded" on healthy idle gateways.
+runs. That commit is the upstream's `v1.1.0` content (the order-independent `:443` liveness probe,
+which fixed a false "degraded" on healthy idle gateways) plus one guard, on the upstream branch
+`floor/no-platform-guard` pending its merge to `main`: when the Hermes `.env` holds no messaging
+platform token, probes B and C are skipped, because a gateway with no platform holds no `:443`
+connection and logs no handshake, and the floor would otherwise restart a healthy gateway on every
+tick. Measured on 2026-09-02 on a Telegram-less test gateway before the guard existed.
 
 ## Moving the pin
 
