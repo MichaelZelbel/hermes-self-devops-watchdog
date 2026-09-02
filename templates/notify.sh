@@ -16,6 +16,8 @@
 #                  (default: the gateway user's, ~/.hermes)
 #   ALERT_TARGET   `hermes send -t` target (default: telegram)
 #   SUBJECT        header line (default: "Hermes watchdog")
+#   SEND_CMD       prefix that runs hermes send AS the gateway user, for a caller
+#                  that is root, e.g. "sudo -n -u ai -H" (default: empty)
 #
 # Exit codes: 0 sent; 30 not sent (the reason is on stderr and in the log).
 # ==============================================================================
@@ -26,6 +28,7 @@ HERMES_BIN="${HERMES_BIN:-$HOME/.local/bin/hermes}"
 SEND_HOME="${SEND_HOME:-$HOME/.hermes}"
 ALERT_TARGET="${ALERT_TARGET:-telegram}"
 SUBJECT="${SUBJECT:-Hermes watchdog}"
+SEND_CMD="${SEND_CMD:-}"
 LOG_FILE="${LOG_FILE:-/var/log/hermes-watchdog/notify.log}"
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 ts()  { date -u +%Y-%m-%dT%H:%M:%SZ; }

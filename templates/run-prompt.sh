@@ -16,6 +16,8 @@
 #   RUN_TIMEOUT    seconds (default: 900)
 #   LOG_DIR        (default: /var/log/hermes-watchdog)
 #   NOTIFY         (default: beside this script)
+#   OPERATOR_CMD   prefix that runs the one-shot AS the gateway user with the watchdog
+#                  profile selected (see selftest.sh); default empty
 # ==============================================================================
 
 set -uo pipefail
@@ -26,6 +28,7 @@ WATCHDOG_HOME="${WATCHDOG_HOME:-$HOME/.hermes/profiles/watchdog}"
 RUN_TIMEOUT="${RUN_TIMEOUT:-900}"
 LOG_DIR="${LOG_DIR:-/var/log/hermes-watchdog}"
 NOTIFY="${NOTIFY:-$(dirname "$0")/notify.sh}"
+OPERATOR_CMD="${OPERATOR_CMD:-}"
 
 name="${1:-}"
 case "$name" in
@@ -41,7 +44,12 @@ ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 redact() { sed -E 's/(sk-|eyJ|ghp_|xox[a-z]-)[A-Za-z0-9._-]{8,}/\1[redacted]/g'; }
 
 # The prompt names the runbook by relative path, so run from the checkout.
-out="$(cd "$REPO" && HERMES_HOME="$WATCHDOG_HOME" timeout "$RUN_TIMEOUT" "$HERMES_BIN" -z "$(cat "$prompt_file")" </dev/null 2>&1 | redact)"
+# shellcheck disable=SC2086  # OPERATOR_CMD is a deliberate word-split prefix
+if [ -n "$OPERATOR_CMD" ]; then
+  out="$(cd "$REPO" && timeout "$RUN_TIMEOUT" $OPERATOR_CMD "$HERMES_BIN" -z "$(cat "$prompt_file")" </dev/null 2>&1 | redact)"
+else
+  out="$(cd "$REPO" && HERMES_HOME="$WATCHDOG_HOME" timeout "$RUN_TIMEOUT" "$HERMES_BIN" -z "$(cat "$prompt_file")" </dev/null 2>&1 | redact)"
+fi
 rc=$?
 {
   printf '%s | run %s (rc=%s)\n' "$(ts)" "$name" "$rc"
