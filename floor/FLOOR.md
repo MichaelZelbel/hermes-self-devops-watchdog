@@ -49,3 +49,8 @@ and exits 10. It sends nothing.
 Everything else, the diagnosis, the bounded repairs beyond a restart, the reports, is the operator
 layer on top, which here is a second Hermes profile. The floor does not know or care who the operator
 is, which is why two products can share it.
+
+Pinned since 2026-09-02 at upstream `2abd1c2` (main): probe B reads the unit's own `MainPID` before
+falling back to `pgrep`. On a host running several Hermes gateways as one user the old lookup judged a
+healthy unit by another gateway's sockets and restarted it on the first tick; found on the author's
+fourteen-gateway server the day the kit went on its pager.

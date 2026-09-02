@@ -46,6 +46,21 @@ REPO=/opt/hermes-watchdog
 Cron passes those variables to every job. The floor restarts the system unit as root; the
 operator's one-shots and the alerts run as the service user, under the watchdog profile.
 
+Two more variables matter in this layout, both measured on a live server on 2026-09-02:
+
+- `SEND_HOME=/home/ai/.hermes`: the `HERMES_HOME` that holds the messaging credentials. Without it
+  `notify.sh` sends from the caller's own Hermes home, which for root is `/root/.hermes`, and every
+  alert fails with "Platform 'telegram' is not configured" while the service user's gateway is fine.
+- `GATEWAY_HOME=/home/ai/.hermes`: for the premium kit's watchdog runner, which wraps the floor. It
+  also honours `HERMES_USER` and `OPERATOR_CMD` with the same meaning as here, so one env block serves
+  the floor, the self-check, the operator runs and the runner alike.
+
+The service user's watchdog profile has its own `.env`. A model credential the gateway keeps as an
+environment key (for example `KIMI_API_KEY` in `/home/ai/.hermes/.env`) is not seen by the watchdog
+profile until that line is copied into `/home/ai/.hermes/profiles/watchdog/.env`; the shared
+`auth.json` covers OAuth credentials only. The self-check names this failure plainly ("No usable
+credentials found for provider"), which is how it was found.
+
 ## What to watch for
 
 - `sudo -n` must not prompt. Root's cron has no terminal; if `sudo` asks for a password the job
