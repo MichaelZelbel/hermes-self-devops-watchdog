@@ -11,7 +11,7 @@ bad() { fail=$((fail+1)); printf '  FAIL %s\n       %s\n' "$1" "${2:-}"; }
 
 # A stand-in for the fetch script's directory, so PIN can be varied.
 mkdir -p "$W/floor"; cp "$HERE/floor/fetch-floor.sh" "$W/floor/"
-printf 'not the floor\n' > "$W/fake.sh"
+printf '#!/bin/sh\nnot the floor\n' > "$W/fake.sh"
 # A file:// URL curl can open on this platform: Windows curl wants C:/... paths.
 src="$W/fake.sh"; command -v cygpath >/dev/null 2>&1 && src="/$(cygpath -m "$src")"
 FAKE_URL="file://$src"
