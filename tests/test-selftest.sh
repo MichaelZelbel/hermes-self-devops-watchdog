@@ -26,6 +26,7 @@ case "${STUB_MODE:-ok}" in
   ratelim) echo "API call failed after 3 retries: HTTP 429: Rate limit reached for this account." ;;
   expired) echo "Error: unauthorized: token expired eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.secretpart" ;;
   silent)  sleep 5 ;;
+  nocreds) echo "hermes -z: agent failed: No Codex credentials stored. Run \`hermes auth\` to authenticate."; exit 1 ;;
 esac
 exit 0
 EOF
@@ -78,6 +79,10 @@ rc=$(HERMES_BIN="$W/bin/none" WATCHDOG_HOME="$W/wd" LOG_FILE="$W/log/s.log" STAT
 : > "$NOTIFY_LOG"; rm -f "$W/state/selftest.down-since" "$W/state/selftest.last-alert"
 rc=$(HERMES_BIN="$W/bin/hermes" WATCHDOG_HOME="$W/nope" LOG_FILE="$W/log/s.log" STATE_DIR="$W/state" NOTIFY="$W/bin/notify.sh" bash "$HERE/templates/selftest.sh" >/dev/null 2>&1; echo $?)
 [ "$rc" = "20" ] && grep -q "hermes profile create watchdog" "$NOTIFY_LOG" && ok "15 a missing profile is DOWN and names the command" || bad "15 missing profile not handled"
+
+# 15b. Hermes 0.21.0's own missing-credential line, with exit 1: DOWN, and the reason is that line.
+: > "$NOTIFY_LOG"; rm -f "$W/state/selftest.down-since" "$W/state/selftest.last-alert"
+[ "$(run nocreds)" = "20" ] && grep -q "No Codex credentials stored" "$NOTIFY_LOG" && ok "15b the missing-credential wording is DOWN and quoted in the alert (Run 10, 2026-09-02)" || bad "15b missing credentials not reported with the reason" "$(cat "$NOTIFY_LOG")"
 
 # 16. OPERATOR_CMD: the probe runs THROUGH the prefix (root's cron over a service user).
 cat > "$W/bin/prefix.sh" <<'EOF'

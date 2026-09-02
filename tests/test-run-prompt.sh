@@ -19,6 +19,7 @@ printf '%s\n' "$2" | head -1 > "$STUB_PROMPT"
 case "${STUB_MODE:-ok}" in
   ok)      echo "Hermes DevOps: OK. Self-check: healer answered. What I checked: ..." ;;
   ratelim) echo "API call failed after 3 retries: HTTP 429: Rate limit reached for this account." ;;
+  nocreds) echo "hermes -z: agent failed: No Codex credentials stored. Run \`hermes auth\` to authenticate."; exit 1 ;;
   empty)   : ;;
 esac
 exit 0
@@ -36,6 +37,8 @@ grep -q "Hermes DevOps: OK" "$W/log/hourly-quick-repair.log" && ok "4 the full o
 [ "$(run ratelim)" = "20" ] && grep -q "SELF-HEALING IS DOWN" "$NOTIFY_LOG" && ok "5 an API failure (exit 0 from hermes) is reported as self-healing down" || bad "5 API failure swallowed" "$(cat "$NOTIFY_LOG")"
 : > "$NOTIFY_LOG"
 [ "$(run empty)" = "20" ] && grep -q "no output" "$NOTIFY_LOG" && ok "6 no output is reported, not treated as quiet health" || bad "6 empty output passed"
+: > "$NOTIFY_LOG"
+[ "$(run nocreds)" = "20" ] && grep -q "SELF-HEALING IS DOWN" "$NOTIFY_LOG" && ok "8 the missing-credential wording Hermes 0.21.0 prints (exit 1) is judged down (Run 10, 2026-09-02)" || bad "8 the credentials-missing run passed as a good run" "$(cat "$NOTIFY_LOG")"
 [ "$(run ok nonsense)" = "2" ] && ok "7 an unknown prompt name is refused" || bad "7 unknown prompt accepted"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"

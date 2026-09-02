@@ -57,9 +57,13 @@ rc=$?
   printf '%s | end %s\n' "$(ts)" "$name"
 } >> "$log"
 
-# The operator did not run at all: say so, as a self-healing problem.
-if printf '%s' "$out" | grep -qiE 'API call failed|rate limit reached|no credential|not logged in|unauthori|token expired'; then
-  why="$(printf '%s' "$out" | grep -iE 'API call failed|rate limit|credential|logged in|unauthori|expired' | head -1)"
+# The operator did not run at all: say so, as a self-healing problem. Two shapes,
+# both measured: an exit-0 one-shot whose stdout carries the API failure, and
+# (Hermes 0.21.0, Run 10, 2026-09-02) an exit-1 "agent failed: No Codex credentials
+# stored. Run `hermes auth` to authenticate." So: the pattern OR a non-zero exit.
+FAIL_RE='API call failed|rate limit|credential|not logged in|unauthori|expired|agent failed|hermes auth'
+if [ "$rc" -ne 0 ] || printf '%s' "$out" | grep -qiE "$FAIL_RE"; then
+  why="$(printf '%s' "$out" | grep -iE "$FAIL_RE" | head -1)"; [ -n "$why" ] || why="exit $rc: $(printf '%s' "$out" | tail -1 | cut -c1-160)"
   msg="SELF-HEALING IS DOWN: the $name run did not reach a model ($why). The floor still restarts a dead gateway; no diagnosis ran."
   [ -x "$NOTIFY" ] && printf '%s\n' "$msg" | "$NOTIFY" >>"$log" 2>&1
   exit 20
