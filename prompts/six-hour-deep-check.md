@@ -68,6 +68,7 @@ through the alert command named under "Paths on this host" above, with the self-
 first line. For a healthy routine run, write a local concise summary and send nothing, unless a
 periodic summary was requested.
 
-Before sending, read the last day of this run's log, named under "Paths on this host" above. A finding
-you already sent, which has not changed and has not got worse, goes in the local summary and not into
-another message. Send again only for something new, something worse, or something recovered.
+Before sending, read the last 200 lines of this run's log, named under "Paths on this host" above,
+and not more: that file grows for ever. A finding you already sent, which has not changed and has not
+got worse, goes in the local summary and not into another message. Send again only for something new,
+something worse, or something recovered.

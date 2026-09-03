@@ -73,8 +73,10 @@ do not kill or restart it. Escalate with evidence.
 
 ## Say a thing once
 
-Before you send anything, read the last day of this run's log, named under "Paths on this host"
-above. It holds what you already told the operator.
+Before you send anything, read the last 200 lines of this run's log, named under "Paths on this
+host" above. It holds what you already told the operator. Two hundred lines is the whole window and
+it is deliberate: the file grows for ever, and a run that reads all of it costs more every week
+until it runs out of time and reports itself as broken.
 
 - A finding you have already sent, which has not changed and has not got worse, is not sent again.
   Record it in the local run note instead. The operator has it.

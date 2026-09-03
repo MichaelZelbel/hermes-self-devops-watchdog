@@ -100,6 +100,21 @@ rc=$?
 # runner suffered, and the difference is that a real failure IS the output,
 # at the start of a line, rather than a phrase inside a paragraph of one.
 FAIL_RE='^[[:space:]]*(✗[[:space:]]*)?(API call failed|agent failed|hermes( -z)?:|Rate limit reached|Authentication failed|Unauthorized|Not logged in|No [A-Za-z]+ credentials|Run .hermes auth.)'
+
+# A run stopped at the cap is a SLOW run, not a dead one. `timeout` returns 124,
+# and if the operator was talking when the axe fell it plainly reached a model,
+# so "SELF-HEALING IS DOWN ... did not reach a model" would be a false alarm of
+# the same family this file has already produced twice. Measured on the author's
+# host 2026-09-03: a routine hourly run took 2 minutes, and the next one, which
+# had an actual gateway restart to explain, took 12.5 against a 15-minute cap.
+# A cap that is nearly reached on a working host is a tripwire, so it says what
+# it is and what to change. A timeout with NOTHING to show still falls through
+# to the down path below, because that one really did produce no diagnosis.
+if [ "$rc" -eq 124 ] && [ -n "$out" ]; then
+  msg="The $name run was stopped at its ${RUN_TIMEOUT}s limit while it was still working. It reached the model, so self-healing is up; this run just did not get to finish, and whatever it had not checked yet went unchecked. The floor is unaffected and still restarts a dead gateway. If this repeats, raise RUN_TIMEOUT in the cron environment."
+  [ -x "$NOTIFY" ] && printf '%s\n' "$msg" | "$NOTIFY" >>"$log" 2>&1
+  exit 21
+fi
 if [ "$rc" -ne 0 ] || printf '%s' "$out" | grep -qiE "$FAIL_RE"; then
   why="$(printf '%s' "$out" | grep -iE "$FAIL_RE" | head -1)"; [ -n "$why" ] || why="exit $rc: $(printf '%s' "$out" | tail -1 | cut -c1-160)"
   msg="SELF-HEALING IS DOWN: the $name run did not reach a model ($why). The floor still restarts a dead gateway; no diagnosis ran."

@@ -39,6 +39,10 @@ case "${STUB_MODE:-ok}" in
     echo "5. The API call failed rate limit wording appears in last week's log excerpt."
     ;;
   empty)   : ;;
+  # Talks, then outlives the cap. `timeout` kills it and returns 124.
+  slow)    echo "Deep check in progress. Gateway active, Telegram handshake present."; sleep 30 ;;
+  # Says nothing AND outlives the cap: that one really did produce no diagnosis.
+  slowmute) sleep 30 ;;
 esac
 exit 0
 EOF
@@ -71,6 +75,12 @@ grep -q "Hermes DevOps: OK" "$W/log/hourly-quick-repair.log" && ok "4 the full o
 # "SELF-HEALING IS DOWN ... did not reach a model" and sent it to the operator.
 : > "$NOTIFY_LOG"
 [ "$(run goodreport six-hour-deep-check)" = "0" ] && [ ! -s "$NOTIFY_LOG" ] && ok "9 a healthy report that mentions a credential is not called a failure" || bad "9 the operator's own findings were read as the runner's error" "$(cat "$NOTIFY_LOG")"
+# A run stopped at the cap while it was still talking reached a model. Saying
+# "did not reach a model" there is a false alarm; the honest word is "slow".
+: > "$NOTIFY_LOG"
+[ "$(run slow)" = "21" ] && grep -q "stopped at its" "$NOTIFY_LOG" && ! grep -q "SELF-HEALING IS DOWN" "$NOTIFY_LOG" && ok "10 a run stopped at the cap is reported as slow, not as dead" || bad "10 the cap was reported as self-healing down" "$(cat "$NOTIFY_LOG")"
+: > "$NOTIFY_LOG"
+[ "$(run slowmute)" = "20" ] && grep -q "SELF-HEALING IS DOWN" "$NOTIFY_LOG" && ok "11 a run that hit the cap with nothing to show is still down" || bad "11 a silent timeout passed as a slow run" "$(cat "$NOTIFY_LOG")"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
