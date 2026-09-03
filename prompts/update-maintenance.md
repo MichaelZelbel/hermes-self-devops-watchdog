@@ -5,7 +5,7 @@ Hermes gateway on this machine.
 
 Read and follow this runbook first:
 
-`hermes-devops-runbook.md`
+the runbook named under "Paths on this host" above.
 
 ## Task
 

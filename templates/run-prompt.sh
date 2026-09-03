@@ -39,16 +39,43 @@ prompt_file="$REPO/prompts/$name.md"
 [ -f "$prompt_file" ] || { echo "run-prompt: missing $prompt_file" >&2; exit 2; }
 mkdir -p "$LOG_DIR" 2>/dev/null || true
 log="$LOG_DIR/$name.log"
+STATE_DIR="${STATE_DIR:-$REPO/.state}"
 ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 redact() { sed -E 's/(sk-|eyJ|ghp_|xox[a-z]-)[A-Za-z0-9._-]{8,}/\1[redacted]/g'; }
 
-# The prompt names the runbook by relative path, so run from the checkout.
+# --- Paths are stated, not assumed (added 2026-09-03 after a live miss) ------
+# The prompts named `hermes-devops-runbook.md` and `templates/notify.sh` by
+# relative path and trusted the operator to be standing in the kit. On the
+# author's own host two scheduled runs reported "Runbook hermes-devops-runbook.md
+# was not found on disk" and "templates/notify.sh not found; this run is
+# recorded as a local note only". The second one is an alert the buyer never
+# received. Every one of those paths is known here, so it is handed over here,
+# and no run depends any more on where the one-shot happens to start.
+render_prompt() {
+  cat <<HEADER
+## Paths on this host
+
+These are absolute and correct. Use them as given. Do not look for these files
+by relative path, and do not report one as missing until you have looked here.
+
+- kit root:          $REPO
+- runbook:           $REPO/hermes-devops-runbook.md
+- send an alert:     $NOTIFY
+- the floor's log:   $STATE_DIR/floor.log
+- the floor's state: $STATE_DIR/watchdog.log
+- self-check log:    $LOG_DIR/selftest.log
+- this run's log:    $log
+
+HEADER
+  cat "$prompt_file"
+}
+
 # shellcheck disable=SC2086  # OPERATOR_CMD is a deliberate word-split prefix
 if [ -n "$OPERATOR_CMD" ]; then
-  out="$(cd "$REPO" && timeout "$RUN_TIMEOUT" $OPERATOR_CMD "$HERMES_BIN" -z "$(cat "$prompt_file")" </dev/null 2>&1 | redact)"
+  out="$(cd "$REPO" && timeout "$RUN_TIMEOUT" $OPERATOR_CMD "$HERMES_BIN" -z "$(render_prompt)" </dev/null 2>&1 | redact)"
 else
-  out="$(cd "$REPO" && HERMES_HOME="$WATCHDOG_HOME" timeout "$RUN_TIMEOUT" "$HERMES_BIN" -z "$(cat "$prompt_file")" </dev/null 2>&1 | redact)"
+  out="$(cd "$REPO" && HERMES_HOME="$WATCHDOG_HOME" timeout "$RUN_TIMEOUT" "$HERMES_BIN" -z "$(render_prompt)" </dev/null 2>&1 | redact)"
 fi
 rc=$?
 {
