@@ -88,7 +88,18 @@ rc=$?
 # both measured: an exit-0 one-shot whose stdout carries the API failure, and
 # (Hermes 0.21.0, Run 10, 2026-09-02) an exit-1 "agent failed: No Codex credentials
 # stored. Run `hermes auth` to authenticate." So: the pattern OR a non-zero exit.
-FAIL_RE='API call failed|rate limit|credential|not logged in|unauthori|expired|agent failed|hermes auth'
+#
+# Anchored to the start of a line, and the anchor is the whole point (fixed
+# 2026-09-03). The pattern used to match the bare word `credential` anywhere in
+# the output. On the author's host a deep check that ran perfectly, reached the
+# model, found the host healthy and correctly decided to send nothing, listed
+# "ttyd PID 405604 still exposes a credential on its command line" among its
+# findings. This wrapper read that word, threw the report away and sent
+# "SELF-HEALING IS DOWN: the six-hour-deep-check run did not reach a model" to
+# the operator instead. A finding the operator reports is not an error the
+# runner suffered, and the difference is that a real failure IS the output,
+# at the start of a line, rather than a phrase inside a paragraph of one.
+FAIL_RE='^[[:space:]]*(✗[[:space:]]*)?(API call failed|agent failed|hermes( -z)?:|Rate limit reached|Authentication failed|Unauthorized|Not logged in|No [A-Za-z]+ credentials|Run .hermes auth.)'
 if [ "$rc" -ne 0 ] || printf '%s' "$out" | grep -qiE "$FAIL_RE"; then
   why="$(printf '%s' "$out" | grep -iE "$FAIL_RE" | head -1)"; [ -n "$why" ] || why="exit $rc: $(printf '%s' "$out" | tail -1 | cut -c1-160)"
   msg="SELF-HEALING IS DOWN: the $name run did not reach a model ($why). The floor still restarts a dead gateway; no diagnosis ran."

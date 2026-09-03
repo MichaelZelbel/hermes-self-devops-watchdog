@@ -20,6 +20,24 @@ case "${STUB_MODE:-ok}" in
   ok)      echo "Hermes DevOps: OK. Self-check: healer answered. What I checked: ..." ;;
   ratelim) echo "API call failed after 3 retries: HTTP 429: Rate limit reached for this account." ;;
   nocreds) echo "hermes -z: agent failed: No Codex credentials stored. Run \`hermes auth\` to authenticate."; exit 1 ;;
+  # A real, healthy deep check from the author's host, 2026-09-03T05:47Z. It
+  # reached the model, found the host well and chose to send nothing. Its
+  # findings mention a credential, a rate limit and an expired thing, because
+  # that is what a DevOps report talks about.
+  goodreport)
+    echo "Deep check complete at 2026-09-03T05:47:34Z."
+    echo ""
+    echo "Self-check: healer answered."
+    echo ""
+    echo "No alert sent. All other findings are unchanged carry-over items."
+    echo ""
+    echo "Carry-over operator items:"
+    echo "1. Outdated gateway service definition; refresh needs a maintenance window."
+    echo "2. chrome-bridge MCP keeps failing and is parked."
+    echo "3. A provider token has expired and is not logged in on an unused profile."
+    echo "4. ttyd PID 405604 still exposes a credential on its command line."
+    echo "5. The API call failed rate limit wording appears in last week's log excerpt."
+    ;;
   empty)   : ;;
 esac
 exit 0
@@ -48,6 +66,11 @@ grep -q "Hermes DevOps: OK" "$W/log/hourly-quick-repair.log" && ok "4 the full o
 : > "$NOTIFY_LOG"
 [ "$(run nocreds)" = "20" ] && grep -q "SELF-HEALING IS DOWN" "$NOTIFY_LOG" && ok "8 the missing-credential wording Hermes 0.21.0 prints (exit 1) is judged down (Run 10, 2026-09-02)" || bad "8 the credentials-missing run passed as a good run" "$(cat "$NOTIFY_LOG")"
 [ "$(run ok nonsense)" = "2" ] && ok "7 an unknown prompt name is refused" || bad "7 unknown prompt accepted"
+# A healthy report that TALKS about credentials, rate limits and expiry is a
+# healthy report. On 2026-09-03 the loose pattern turned exactly this run into
+# "SELF-HEALING IS DOWN ... did not reach a model" and sent it to the operator.
+: > "$NOTIFY_LOG"
+[ "$(run goodreport six-hour-deep-check)" = "0" ] && [ ! -s "$NOTIFY_LOG" ] && ok "9 a healthy report that mentions a credential is not called a failure" || bad "9 the operator's own findings were read as the runner's error" "$(cat "$NOTIFY_LOG")"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
