@@ -46,7 +46,7 @@ redact() { sed -E 's/(sk-|eyJ|ghp_|xox[a-z]-)[A-Za-z0-9._-]{8,}/\1[redacted]/g';
 
 # --- Paths are stated, not assumed (added 2026-09-03 after a live miss) ------
 # The prompts named `hermes-devops-runbook.md` and `templates/notify.sh` by
-# relative path and trusted the operator to be standing in the kit. On the
+# relative path and trusted the operator to be sitting in the kit. On the
 # author's own host two scheduled runs reported "Runbook hermes-devops-runbook.md
 # was not found on disk" and "templates/notify.sh not found; this run is
 # recorded as a local note only". The second one is an alert the buyer never

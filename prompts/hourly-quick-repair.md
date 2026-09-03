@@ -78,7 +78,7 @@ above. It holds what you already told the operator.
 
 - A finding you have already sent, which has not changed and has not got worse, is not sent again.
   Record it in the local run note instead. The operator has it.
-- A standing condition that needs a human decision (a scheduled maintenance window, a component
+- An open condition that needs a human decision (a scheduled maintenance window, a component
   somebody chose to park, an upgrade waiting on approval) is sent once when you first see it, and
   then only if it changes.
 - Send again only for something new, something that got worse, or something that recovered.
