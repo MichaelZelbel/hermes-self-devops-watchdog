@@ -55,7 +55,17 @@ fi
 # `hermes send` prints its own result; a failure is a non-empty error on
 # stderr plus a non-zero exit, and we test both so a silent failure cannot
 # pass as delivery.
-out="$(printf '%s\n' "$body" | HERMES_HOME="$SEND_HOME" timeout 60 "$HERMES_BIN" send -t "$ALERT_TARGET" -s "$SUBJECT" 2>&1)"
+# SEND_CMD is the hop to the gateway user for a caller that is root (root's
+# cron in the root-plus-service-user layout). Until 2026-09-06 it was declared
+# here and never used, so every alert from root's clock ran `hermes send` as
+# root over the service user's home, which works once and then leaves
+# root-owned files in a home that account can no longer write.
+# shellcheck disable=SC2086  # SEND_CMD is a deliberate word-split prefix
+if [ -n "$SEND_CMD" ]; then
+  out="$(printf '%s\n' "$body" | timeout 60 $SEND_CMD env HERMES_HOME="$SEND_HOME" "$HERMES_BIN" send -t "$ALERT_TARGET" -s "$SUBJECT" 2>&1)"
+else
+  out="$(printf '%s\n' "$body" | HERMES_HOME="$SEND_HOME" timeout 60 "$HERMES_BIN" send -t "$ALERT_TARGET" -s "$SUBJECT" 2>&1)"
+fi
 rc=$?
 if [ "$rc" -eq 0 ] && ! printf '%s' "$out" | grep -qiE 'error|failed|no such target|not configured'; then
   log "sent to $ALERT_TARGET: $(printf '%s' "$body" | head -c 120 | tr '\n' ' ')"

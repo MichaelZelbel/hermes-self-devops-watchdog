@@ -35,7 +35,11 @@ HERMES_BIN=/home/ai/.local/bin/hermes
 WATCHDOG_HOME=/home/ai/.hermes/profiles/watchdog
 OPERATOR_CMD=sudo -n -u ai -H env HERMES_HOME=/home/ai/.hermes/profiles/watchdog
 SEND_CMD=sudo -n -u ai -H
+SEND_HOME=/home/ai/.hermes
 REPO=/opt/hermes-watchdog
+STATE_DIR=/var/lib/hermes-watchdog
+FLOOR_LOG=/var/log/hermes-watchdog/quick.log
+FLOOR_STATE=
 
 */5 * * * *  /opt/hermes-watchdog/floor/quick-check.sh
 */5 * * * *  /opt/hermes-watchdog/templates/selftest.sh
@@ -45,6 +49,11 @@ REPO=/opt/hermes-watchdog
 
 Cron passes those variables to every job. The floor restarts the system unit as root; the
 operator's one-shots and the alerts run as the service user, under the watchdog profile.
+`FLOOR_LOG` and `FLOOR_STATE` (added in v1.0.9) tell the operator where the bare floor really
+writes: `quick-check.sh` alone keeps one log and no state file, so `FLOOR_STATE` is set empty and
+the prompt names one file instead of two that do not exist. The same release made `notify.sh`
+honour `SEND_CMD`, which it had declared and never used, so alerts from root's cron now go out
+as the service user rather than as root over its home.
 
 Two more variables matter in this layout, both measured on a live server on 2026-09-02:
 

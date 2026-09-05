@@ -18,6 +18,11 @@
 #   NOTIFY         (default: beside this script)
 #   OPERATOR_CMD   prefix that runs the one-shot AS the gateway user with the watchdog
 #                  profile selected (see selftest.sh); default empty
+#   FLOOR_LOG      the floor's log, named to the operator (default: $STATE_DIR/floor.log,
+#                  the premium runner's layout; the bare floor writes LOG_FILE, by
+#                  default /var/log/hermes-watchdog/quick.log, so set this to that)
+#   FLOOR_STATE    the floor's state file (default: $STATE_DIR/watchdog.log); set it
+#                  EMPTY when the bare floor runs alone, which keeps no such file
 # ==============================================================================
 
 set -uo pipefail
@@ -40,6 +45,8 @@ prompt_file="$REPO/prompts/$name.md"
 mkdir -p "$LOG_DIR" 2>/dev/null || true
 log="$LOG_DIR/$name.log"
 STATE_DIR="${STATE_DIR:-$REPO/.state}"
+FLOOR_LOG="${FLOOR_LOG:-$STATE_DIR/floor.log}"
+FLOOR_STATE="${FLOOR_STATE-$STATE_DIR/watchdog.log}"
 ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 redact() { sed -E 's/(sk-|eyJ|ghp_|xox[a-z]-)[A-Za-z0-9._-]{8,}/\1[redacted]/g'; }
@@ -62,9 +69,8 @@ by relative path, and do not report one as missing until you have looked here.
 - kit root:          $REPO
 - runbook:           $REPO/hermes-devops-runbook.md
 - send an alert:     $NOTIFY
-- the floor's log:   $STATE_DIR/floor.log
-- the floor's state: $STATE_DIR/watchdog.log
-- self-check log:    $LOG_DIR/selftest.log
+- the floor's log:   $FLOOR_LOG
+$( [ -n "$FLOOR_STATE" ] && printf -- '- the floor%ss state: %s\n' "'" "$FLOOR_STATE" )- self-check log:    $LOG_DIR/selftest.log
 - this run's log:    $log
 
 HEADER
