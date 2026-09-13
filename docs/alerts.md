@@ -2,13 +2,33 @@
 
 ## Policy
 
-Quiet when healthy. Speak for a repair, an incident, an approval request, or the self-check failing.
-No message for a routine healthy run. An optional daily summary if the operator asks for one.
+Quiet when healthy. Quiet when it fixed something itself. One item a human sees once when something
+should be looked at. A message at once only when the gateway is down and stays down, or when the
+self-repair itself is down.
+
+Every message carries a status, set by the caller (`NOTIFY_STATUS`) or derived from its words, and
+`templates/notify.sh` sorts it into one of three classes:
+
+| class  | statuses                                                        | what happens                                                                 |
+|--------|-----------------------------------------------------------------|------------------------------------------------------------------------------|
+| quiet  | recovered on its own, repaired automatically, for the record    | logged; recorded on the hub's ledger where one exists; sent nowhere          |
+| card   | needs a person, warning not broken yet, alert                   | on a hub host: one card on the attention ledger, one per topic per day; elsewhere: sent, the same first line at most once per `NOTIFY_DEDUP_SECONDS` (default a day) |
+| urgent | still down needs you, self-repair is down needs you             | sent now, every time                                                         |
+
+Why: on the kit's own first host, every self-repaired restart produced a message, the operator
+escalated the same recurring fault several times a day, and the human counted a hundred messages in a
+day with nothing in them he had to do. Alert fatigue is measured: acceptance drops about 30% for
+each extra reminder (Ancker et al. 2017). A watchdog that reports every restart it survived trains
+its reader to stop reading it. `NOTIFY_QUIET` and `NOTIFY_URGENT` move statuses between classes.
 
 ## The channel
 
-`hermes send -t <target>`, wrapped by `templates/notify.sh`. It reuses the platform credentials the
-gateway already holds, so:
+On a hub host, `templates/notify.sh` finds `/usr/local/bin/hub-notify` and uses its lanes: the bot
+lane for urgent (the hub bot writes the words itself, so a reply lands in a conversation that can
+answer), the card lane for card, the record lane for quiet. No bot token is read or passed.
+
+Everywhere else: `hermes send -t <target>`. It reuses the platform credentials the gateway already
+holds, so:
 
 - no bot token is copied into a second file,
 - no chat id is looked up by hand (`hermes send --list` shows what Hermes knows),

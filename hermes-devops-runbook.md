@@ -133,8 +133,12 @@ to the operator's alert target through `hermes send`.
 
 ## Reporting
 
-Report through `templates/notify.sh`, which uses `hermes send -t <target>`. Only when there is a
-meaningful result. Format:
+Report through `templates/notify.sh`. It is the only way to reach a human: never call `hermes send`
+yourself, because it speaks as whichever profile holds the platform credentials, and on a host with
+more than one bot that is the wrong voice. Only when there is a meaningful result. A report whose
+first line says `repaired` is kept quiet by policy (logged, recorded, sent nowhere); `needs the
+operator` and `incident` become one item the human sees once; the self-check failing is sent at once
+(docs/alerts.md). Format:
 
 ```text
 Hermes DevOps: <OK / repaired / needs the operator / incident>
