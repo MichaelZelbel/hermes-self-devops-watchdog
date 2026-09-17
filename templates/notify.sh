@@ -53,6 +53,8 @@
 #                   (default hermes-watchdog)
 #   NOTIFY_PROFILE / NOTIFY_ROUTE / NOTIFY_SOURCE   hub-notify bot lane (hub, watchdog, hermes-self-ops-kit)
 #   HUB_NOTIFY      path of hub-notify (default /usr/local/bin/hub-notify)
+#   NOTIFY_SUDO     how a non-root caller crosses to hub-notify: auto (default: only
+#                   through a sudo rule that already exists) | "" never | "sudo -n" always
 #   HERMES_BIN      hermes CLI (default: ~/.local/bin/hermes)
 #   SEND_HOME       HERMES_HOME that holds the platform credentials (default ~/.hermes)
 #   ALERT_TARGET    `hermes send -t` target (default: telegram)
@@ -133,14 +135,34 @@ class=card
 in_list "$status" "$NOTIFY_QUIET" ',' && class=quiet
 in_list "$status" "$NOTIFY_URGENT" '|' && class=urgent
 
-# hub-notify reads root-only config; a caller that is the service user hops
-# through sudo (the kit's install adds the one-line sudoers rule for exactly
-# this binary). NOTIFY_SUDO="" turns the hop off, for tests.
-NOTIFY_SUDO="${NOTIFY_SUDO-sudo -n}"
+# hub-notify reads root-only config, so a caller that is the service user needs a
+# way across to it. THAT CROSSING BELONGS TO THE HOST THAT OWNS hub-notify, NEVER TO
+# THIS KIT. Until 2026-09-17 this comment said "the kit's install adds the one-line
+# sudoers rule for exactly this binary", and the code hopped through `sudo -n`
+# unconditionally. No installer in this kit, or in any kit built on it, ever wrote
+# that rule: it existed on one host, typed by hand. Everywhere else the hop could only
+# fail, and inside a systemd unit that keeps NoNewPrivileges=true sudo cannot start at
+# all, however many rules exist. On 2026-09-14 exactly that (a granted rule, a sandbox
+# that forbids using it, an error blaming a healthy service) cost the author a phone
+# call in front of an audience. So nothing is assumed any more:
+#   NOTIFY_SUDO unset or "auto"  hop only if a rule for exactly this binary ALREADY
+#                                answers without a password; otherwise call it directly
+#   NOTIFY_SUDO=""               never hop (a host that made hub-notify reachable the
+#                                right way: a group-owned socket behind the same name)
+#   NOTIFY_SUDO="sudo -n"        always hop (the old behaviour, stated out loud)
+# When the call fails, its own words go to the log, never a guess about the cause.
+NOTIFY_SUDO="${NOTIFY_SUDO-auto}"
 runner() {
   RUNNER=("$HUB_NOTIFY")
-  # shellcheck disable=SC2206  # NOTIFY_SUDO is a deliberate word-split prefix
-  if [ "$(id -u)" -ne 0 ] && [ -n "$NOTIFY_SUDO" ]; then RUNNER=($NOTIFY_SUDO "$HUB_NOTIFY"); fi
+  [ "$(id -u)" -eq 0 ] && return 0
+  local hop="$NOTIFY_SUDO"
+  if [ "$hop" = "auto" ]; then
+    hop=""
+    if command -v sudo >/dev/null 2>&1 && sudo -n -l "$HUB_NOTIFY" >/dev/null 2>&1; then hop="sudo -n"; fi
+  fi
+  # shellcheck disable=SC2206  # the hop is a deliberate word-split prefix
+  [ -n "$hop" ] && RUNNER=($hop "$HUB_NOTIFY")
+  return 0
 }
 sender="$NOTIFY_SENDER"
 if [ "$sender" = "auto" ]; then
@@ -151,9 +173,9 @@ fi
 if [ "$class" = "quiet" ]; then
   if [ "$sender" = "hub-notify" ]; then
     runner
-    printf '%s\n' "$body" | "${RUNNER[@]}" --lane record --source "$NOTIFY_SOURCE" --summary "$status" >/dev/null 2>&1 \
+    why="$(printf '%s\n' "$body" | "${RUNNER[@]}" --lane record --source "$NOTIFY_SOURCE" --summary "$status" 2>&1 >/dev/null)" \
       && log "kept quiet ($status), recorded on the ledger: $(head120 "$body")" \
-      || log "kept quiet ($status), ledger unreachable: $(head120 "$body")"
+      || log "kept quiet ($status), ledger not reached (${RUNNER[*]} said: $(head120 "${why:-nothing}")): $(head120 "$body")"
   else
     log "kept quiet ($status): $(head120 "$body")"
   fi
