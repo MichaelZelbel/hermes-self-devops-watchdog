@@ -135,6 +135,27 @@ class=card
 in_list "$status" "$NOTIFY_QUIET" ',' && class=quiet
 in_list "$status" "$NOTIFY_URGENT" '|' && class=urgent
 
+# Reader installations with conversation protection use the same verified source
+# boundary as the gateway. Prose and inferred urgency are never sent directly.
+CHAT_PROFILE="${HUB_CHAT_PROFILE:-$SEND_HOME}"
+CHAT_COMMAND="${HUB_CHAT_COMMAND:-$HOME/.local/bin/hub-chat}"
+if [ -f "$CHAT_PROFILE/hub-chat.json" ]; then
+  if [ "$class" != "urgent" ]; then
+    log "kept local by shared conversation policy ($status)"
+    exit 0
+  fi
+  if [ ! -x "$CHAT_COMMAND" ]; then
+    log "critical event retained: shared chat command is unavailable"
+    exit 30
+  fi
+  if "$CHAT_COMMAND" --profile "$CHAT_PROFILE" submit-critical "${NOTIFY_ITEM_ID:-watchdog:gateway}" >> "$LOG_FILE" 2>&1; then
+    log "critical source queued for a fresh check; delivery is not yet confirmed"
+    exit 0
+  fi
+  log "critical event could not be queued; no delivery claimed"
+  exit 30
+fi
+
 # hub-notify reads root-only config, so a caller that is the service user needs a
 # way across to it. THAT CROSSING BELONGS TO THE HOST THAT OWNS hub-notify, NEVER TO
 # THIS KIT. Until 2026-09-17 this comment said "the kit's install adds the one-line

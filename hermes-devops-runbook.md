@@ -79,6 +79,11 @@ approvals template and reported as "needs the operator". Never work around a ref
 
 ## Auto-update policy
 
+When the gateway profile has `hub-chat.json`, run `hub-chat doctor` on its host
+before proposing a Hermes update. The reader kit certifies a specific runtime
+revision. An update that removes that integration is not eligible for unattended
+installation. Keep the tested version until the kit ships a compatible bundle.
+
 Patch or minor Hermes updates only if all of these hold: the update command is confirmed from local
 help, not guessed; status, version, config summary and gateway state are recorded first; there is a
 clear rollback path; it is not a major version or channel switch; no auth, model, config, migration
@@ -132,6 +137,12 @@ process, `hermes cron list`, `hermes logs errors --since 30m`, and, if approved,
 to the operator's alert target through `hermes send`.
 
 ## Reporting
+
+On a host using the shared conversation package, `notify.sh` queues only a
+registered critical source. The gateway checks that source again before sending.
+Queue acceptance is not delivery. Repairs and unclassified prose stay local.
+If the gateway itself is offline, its queue cannot provide an immediate Telegram
+alert; an independently configured emergency destination is required for that case.
 
 Report through `templates/notify.sh`. It is the only way to reach a human: never call `hermes send`
 yourself, because it speaks as whichever profile holds the platform credentials, and on a host with

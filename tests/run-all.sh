@@ -4,7 +4,7 @@
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 rc=0
-for t in test-floor-pin.sh test-selftest.sh test-notify.sh test-run-prompt.sh test-operator-is-hermes.sh; do
+for t in test-floor-pin.sh test-selftest.sh test-notify.sh test-shared-chat.sh test-run-prompt.sh test-operator-is-hermes.sh; do
   echo "== $t"
   bash "$HERE/$t" || rc=1
 done
