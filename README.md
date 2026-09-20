@@ -9,6 +9,32 @@ This is the sister project of
 which puts a different company's tool on the pager. The two share one deterministic floor and differ
 in who holds the phone. Read [Which one do you want?](#which-one-do-you-want) before choosing.
 
+## If you see this
+
+```text
+API call failed after 3 retries: HTTP 429: Rate limit reached for this account.
+```
+
+A Hermes run reached no model, printed this to stdout and still exited 0. `templates/selftest.sh` reads the output, never the exit code, and the alert says SELF-HEALING IS DOWN. Causes and fixes: [docs/troubleshooting.md](docs/troubleshooting.md).
+
+```text
+hermes-gateway.service: State 'stop-sigterm' timed out. Killing.
+```
+
+From `journalctl -u hermes-gateway`. The gateway did not stop within systemd's time limit and was killed. The `TimeoutStopSec` drop-in that gives it more time is in [docs/troubleshooting.md](docs/troubleshooting.md#gateway-restarts-end-in-sigkill).
+
+```text
+⚠ A previous `hermes update` pulled new code but did not restart running gateways.
+```
+
+An open upstream problem, [Hermes issue 107402](https://github.com/NousResearch/hermes-agent/issues/107402): the line can stay after the gateways really restarted. Nothing in this repository clears it. The floor does not read it. It judges the gateway by the unit state, a held `:443` connection and the platform handshake after the last start.
+
+```text
+⚠️ Gateway shutting down
+```
+
+Hermes posts this notice to the bot's home chat when the gateway stops, and another when it is back. A restart made by a watchdog triggers it like any other restart. `gateway_restart_notification: false` for that platform in `config.yaml` turns it off from the next gateway start. See "Restart notifications" in the [Hermes messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/).
+
 ## TL;DR
 
 1. Install Hermes Agent on your VPS, as the user that will run the gateway.
