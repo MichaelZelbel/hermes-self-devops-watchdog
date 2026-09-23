@@ -32,7 +32,7 @@ different company's tool on the pager, at the price of a second subscription.
 
 ## Why the self-check is mandatory here
 
-Because of the paragraph above. In August 2026 a shared credential expired on a production hub; the
+Because of the paragraph above. In August 2026 a shared credential expired on a production mission control; the
 checks that read files kept reporting green for eight days while every repair job died at login. The
 probe that would have caught it asks the healer to do one trivial thing, live, and shouts when it
 cannot. On this architecture that probe is `templates/selftest.sh`, it runs every five minutes on the

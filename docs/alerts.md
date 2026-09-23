@@ -11,8 +11,8 @@ Every message carries a status, set by the caller (`NOTIFY_STATUS`) or derived f
 
 | class  | statuses                                                        | what happens                                                                 |
 |--------|-----------------------------------------------------------------|------------------------------------------------------------------------------|
-| quiet  | recovered on its own, repaired automatically, for the record    | logged; recorded on the hub's ledger where one exists; sent nowhere          |
-| card   | needs a person, warning not broken yet, alert                   | on a hub host: one card on the attention ledger, one per topic per day; elsewhere: sent, the same first line at most once per `NOTIFY_DEDUP_SECONDS` (default a day) |
+| quiet  | recovered on its own, repaired automatically, for the record    | logged; recorded on Mission Control's ledger where one exists; sent nowhere          |
+| card   | needs a person, warning not broken yet, alert                   | on a mission control host: one card on the attention ledger, one per topic per day; elsewhere: sent, the same first line at most once per `NOTIFY_DEDUP_SECONDS` (default a day) |
 | urgent | still down needs you, self-repair is down needs you             | sent now, every time                                                         |
 
 Why: on the kit's own first host, every self-repaired restart produced a message, the operator
@@ -23,8 +23,8 @@ its reader to stop reading it. `NOTIFY_QUIET` and `NOTIFY_URGENT` move statuses 
 
 ## The channel
 
-On a hub host, `templates/notify.sh` finds `/usr/local/bin/hub-notify` and uses its lanes: the bot
-lane for urgent (the hub bot writes the words itself, so a reply lands in a conversation that can
+On a mission control host, `templates/notify.sh` finds `/usr/local/bin/mc-notify` and uses its lanes: the bot
+lane for urgent (Mission Control bot writes the words itself, so a reply lands in a conversation that can
 answer), the card lane for card, the record lane for quiet. No bot token is read or passed.
 
 Everywhere else: `hermes send -t <target>`. It reuses the platform credentials the gateway already

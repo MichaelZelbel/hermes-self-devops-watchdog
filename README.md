@@ -106,7 +106,7 @@ exists to catch. See `templates/selftest.sh`.
   the three operator prompts.
 - `templates/selftest.sh`: the healer liveness probe.
 - `templates/notify.sh`: the alert policy (quiet when it fixed itself, one item when a human should
-  look, a message only when it needs one) and the channel: hub-notify on a hub host, else `hermes send`.
+  look, a message only when it needs one) and the channel: mc-notify on a mission control host, else `hermes send`.
 - `templates/hermes-approvals.conservative.example.yaml` and
   `templates/hermes-approvals.autonomous-devops.example.yaml`: the leash for the watchdog profile.
 - `templates/cron.example`: the machine's crontab lines.

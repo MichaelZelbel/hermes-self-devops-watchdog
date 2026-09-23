@@ -16,7 +16,7 @@
 #   quiet   recovered on its own / repaired automatically / for the record
 #           -> logged, and recorded if a ledger exists. Sent NOWHERE.
 #   card    needs a person / warning, not broken yet / alert
-#           -> something a human should see, but not tonight. On a hub host it
+#           -> something a human should see, but not tonight. On a mission control host it
 #              becomes one card on the attention ledger (shown at most once a
 #              day, deduplicated per topic); elsewhere it is sent, once per
 #              NOTIFY_DEDUP_SECONDS for the same first line.
@@ -29,8 +29,8 @@
 #
 # THE SENDER
 # -----------------------------------------------------------------------------
-#   hub-notify   present on a hub host (/usr/local/bin/hub-notify): the hub's
-#                one sanctioned sender. Its bot lane hands the FACTS to the hub
+#   mc-notify   present on a mission control host (/usr/local/bin/mc-notify): Mission Control's
+#                one sanctioned sender. Its bot lane hands the FACTS to Mission Control
 #                bot, which writes the message itself so a reply lands in a
 #                conversation that can answer; its card and record lanes are the
 #                quiet classes above. No bot token is read or passed here.
@@ -41,7 +41,7 @@
 #         notify.sh "message"
 #
 # Overrides (env vars):
-#   NOTIFY_SENDER   auto (default) | hub-notify | hermes-send
+#   NOTIFY_SENDER   auto (default) | mc-notify | hermes-send
 #   NOTIFY_STATUS   how it ended, one of the statuses above (else derived)
 #   NOTIFY_QUIET    comma list of statuses that are logged only
 #                   (default "recovered on its own,repaired automatically,for the record")
@@ -49,11 +49,11 @@
 #                   (default "still down, needs you|self-repair is down, needs you", '|' separated)
 #   NOTIFY_DEDUP_SECONDS  card class, hermes-send: same first line at most once
 #                   in this window (default 86400; 0 disables)
-#   NOTIFY_TOPIC    hub-notify card lane: one open card per topic per day
+#   NOTIFY_TOPIC    mc-notify card lane: one open card per topic per day
 #                   (default hermes-watchdog)
-#   NOTIFY_PROFILE / NOTIFY_ROUTE / NOTIFY_SOURCE   hub-notify bot lane (hub, watchdog, hermes-self-ops-kit)
-#   HUB_NOTIFY      path of hub-notify (default /usr/local/bin/hub-notify)
-#   NOTIFY_SUDO     how a non-root caller crosses to hub-notify: auto (default: only
+#   NOTIFY_PROFILE / NOTIFY_ROUTE / NOTIFY_SOURCE   mc-notify bot lane (godspeed, watchdog, hermes-self-ops-kit)
+#   GODSPEED_NOTIFY      path of mc-notify (default /usr/local/bin/mc-notify)
+#   NOTIFY_SUDO     how a non-root caller crosses to mc-notify: auto (default: only
 #                   through a sudo rule that already exists) | "" never | "sudo -n" always
 #   HERMES_BIN      hermes CLI (default: ~/.local/bin/hermes)
 #   SEND_HOME       HERMES_HOME that holds the platform credentials (default ~/.hermes)
@@ -75,8 +75,8 @@ NOTIFY_QUIET="${NOTIFY_QUIET:-recovered on its own,repaired automatically,for th
 NOTIFY_URGENT="${NOTIFY_URGENT:-still down, needs you|self-repair is down, needs you}"
 NOTIFY_DEDUP_SECONDS="${NOTIFY_DEDUP_SECONDS:-86400}"
 NOTIFY_TOPIC="${NOTIFY_TOPIC:-hermes-watchdog}"
-HUB_NOTIFY="${HUB_NOTIFY:-/usr/local/bin/hub-notify}"
-NOTIFY_PROFILE="${NOTIFY_PROFILE:-hub}"
+GODSPEED_NOTIFY="${GODSPEED_NOTIFY:-/usr/local/bin/mc-notify}"
+NOTIFY_PROFILE="${NOTIFY_PROFILE:-godspeed}"
 NOTIFY_ROUTE="${NOTIFY_ROUTE:-watchdog}"
 NOTIFY_SOURCE="${NOTIFY_SOURCE:-hermes-self-ops-kit}"
 HERMES_BIN="${HERMES_BIN:-$HOME/.local/bin/hermes}"
@@ -135,8 +135,8 @@ class=card
 in_list "$status" "$NOTIFY_QUIET" ',' && class=quiet
 in_list "$status" "$NOTIFY_URGENT" '|' && class=urgent
 
-# hub-notify reads root-only config, so a caller that is the service user needs a
-# way across to it. THAT CROSSING BELONGS TO THE HOST THAT OWNS hub-notify, NEVER TO
+# mc-notify reads root-only config, so a caller that is the service user needs a
+# way across to it. THAT CROSSING BELONGS TO THE HOST THAT OWNS mc-notify, NEVER TO
 # THIS KIT. Until 2026-09-17 this comment said "the kit's install adds the one-line
 # sudoers rule for exactly this binary", and the code hopped through `sudo -n`
 # unconditionally. No installer in this kit, or in any kit built on it, ever wrote
@@ -147,31 +147,31 @@ in_list "$status" "$NOTIFY_URGENT" '|' && class=urgent
 # call in front of an audience. So nothing is assumed any more:
 #   NOTIFY_SUDO unset or "auto"  hop only if a rule for exactly this binary ALREADY
 #                                answers without a password; otherwise call it directly
-#   NOTIFY_SUDO=""               never hop (a host that made hub-notify reachable the
+#   NOTIFY_SUDO=""               never hop (a host that made mc-notify reachable the
 #                                right way: a group-owned socket behind the same name)
 #   NOTIFY_SUDO="sudo -n"        always hop (the old behaviour, stated out loud)
 # When the call fails, its own words go to the log, never a guess about the cause.
 NOTIFY_SUDO="${NOTIFY_SUDO-auto}"
 runner() {
-  RUNNER=("$HUB_NOTIFY")
+  RUNNER=("$GODSPEED_NOTIFY")
   [ "$(id -u)" -eq 0 ] && return 0
   local hop="$NOTIFY_SUDO"
   if [ "$hop" = "auto" ]; then
     hop=""
-    if command -v sudo >/dev/null 2>&1 && sudo -n -l "$HUB_NOTIFY" >/dev/null 2>&1; then hop="sudo -n"; fi
+    if command -v sudo >/dev/null 2>&1 && sudo -n -l "$GODSPEED_NOTIFY" >/dev/null 2>&1; then hop="sudo -n"; fi
   fi
   # shellcheck disable=SC2206  # the hop is a deliberate word-split prefix
-  [ -n "$hop" ] && RUNNER=($hop "$HUB_NOTIFY")
+  [ -n "$hop" ] && RUNNER=($hop "$GODSPEED_NOTIFY")
   return 0
 }
 sender="$NOTIFY_SENDER"
 if [ "$sender" = "auto" ]; then
-  if [ -x "$HUB_NOTIFY" ]; then sender=hub-notify; else sender=hermes-send; fi
+  if [ -x "$GODSPEED_NOTIFY" ]; then sender=mc-notify; else sender=hermes-send; fi
 fi
 
 # --- quiet: it fixed itself; nobody's phone rings -----------------------------
 if [ "$class" = "quiet" ]; then
-  if [ "$sender" = "hub-notify" ]; then
+  if [ "$sender" = "mc-notify" ]; then
     runner
     why="$(printf '%s\n' "$body" | "${RUNNER[@]}" --lane record --source "$NOTIFY_SOURCE" --summary "$status" 2>&1 >/dev/null)" \
       && log "kept quiet ($status), recorded on the ledger: $(head120 "$body")" \
@@ -183,13 +183,13 @@ if [ "$class" = "quiet" ]; then
 fi
 
 # --- card: a human should see it, not tonight ---------------------------------
-if [ "$class" = "card" ] && [ "$sender" = "hub-notify" ]; then
+if [ "$class" = "card" ] && [ "$sender" = "mc-notify" ]; then
   runner
   out="$(printf '%s\n' "$body" | "${RUNNER[@]}" --lane card --kind finding --topic "$NOTIFY_TOPIC" --source "$NOTIFY_SOURCE" \
       --title "What the self-repair watchdog reported ($(date -u +%Y-%m-%d))" \
       --what "${NOTIFY_CARD_WHAT:-The self-repair watchdog on the server that runs your AI assistants has a report it could not settle on its own ($status).}" \
       --if-ignored "${NOTIFY_CARD_IF_IGNORED:-It stays unsettled. The watchdog keeps repairing what it can and will not ask again for a day.}" \
-      --next "${NOTIFY_CARD_NEXT:-Open the report, then tell the hub bot what you want done, or tell it to leave it.}" 2>&1)"
+      --next "${NOTIFY_CARD_NEXT:-Open the report, then tell Mission Control bot what you want done, or tell it to leave it.}" 2>&1)"
   rc=$?
   if [ "$rc" -eq 0 ]; then
     log "carded ($status): $(head120 "$out") :: $(head120 "$body")"
@@ -209,19 +209,19 @@ if [ "$class" = "card" ] && [ "$NOTIFY_DEDUP_SECONDS" -gt 0 ] 2>/dev/null; then
   printf '%s' "$now" > "$stamp" 2>/dev/null || true
 fi
 
-# --- send: the bot lane on a hub host, hermes send elsewhere ------------------
-if [ "$sender" = "hub-notify" ]; then
-  if [ ! -x "$HUB_NOTIFY" ]; then
-    log "not sent: no hub-notify at $HUB_NOTIFY"; echo "notify: no hub-notify at $HUB_NOTIFY" >&2; exit 30
+# --- send: the bot lane on a mission control host, hermes send elsewhere ------------------
+if [ "$sender" = "mc-notify" ]; then
+  if [ ! -x "$GODSPEED_NOTIFY" ]; then
+    log "not sent: no mc-notify at $GODSPEED_NOTIFY"; echo "notify: no mc-notify at $GODSPEED_NOTIFY" >&2; exit 30
   fi
   runner
   out="$("${RUNNER[@]}" --lane bot --profile "$NOTIFY_PROFILE" --route "$NOTIFY_ROUTE" --source "$NOTIFY_SOURCE" \
           --summary "$body" --status "$status" 2>&1)"
   rc=$?
   if [ "$rc" -eq 0 ]; then
-    note="sent via hub-notify bot lane (profile=$NOTIFY_PROFILE route=$NOTIFY_ROUTE, $status)"
+    note="sent via mc-notify bot lane (profile=$NOTIFY_PROFILE route=$NOTIFY_ROUTE, $status)"
     printf '%s' "$out" | grep -q "falling back to the machine lane" \
-      && note="sent on the MACHINE lane; the hub bot could not be reached"
+      && note="sent on the MACHINE lane; Mission Control bot could not be reached"
     log "$note: $(head120 "$body")"
     exit 0
   fi
