@@ -120,9 +120,7 @@ exists to catch. See `templates/selftest.sh`.
 
 This watchdog is free and MIT licensed, and it stays that way.
 
-If it saved you time, you can buy me a coffee on Ko-fi. Supporters also get the Hermes Self DevOps Kit,
-the extended version with the doctor, the security layer, backups, cost observability and the
-incident playbooks, operated by the same watchdog Hermes.
+If it saved you time and you want to support the work, you can [buy me a coffee on Ko-fi](https://ko-fi.com/michaelc0de). Either way, thanks for using the watchdog.
 
 ## Safety principle
 
