@@ -12,8 +12,8 @@
 # nobody waits for them any more. On 2026-09-21 an agent's command outlived its
 # caller and held a CPU core for 5.4 days until the host throttled the server.
 # agent-cage comes from kit-bootstrap; install it once, as root:
-#   curl -fsSLO https://raw.githubusercontent.com/MichaelZelbel/kit-bootstrap/agent-cage-v1.0.0/agent-cage.sh
-#   sha256sum agent-cage.sh   # 4654f9287f0aa4fa64d5d72d8b01eedf7907cbe6acd97f651d414b243dcd32c6
+#   curl -fsSLO https://raw.githubusercontent.com/MichaelZelbel/kit-bootstrap/agent-cage-v1.0.1/agent-cage.sh
+#   sha256sum agent-cage.sh   # 07ef1424074690d3ec465b21cf67592a5e0e9c37ae54236782cbcfc98c7e419d
 #   bash agent-cage.sh install && bash agent-cage.sh selftest
 # Without it, drop the "/usr/local/bin/agent-cage --max ... --" in front of each
 # job: selftest.sh and run-prompt.sh still bound their Hermes call with timeout,
