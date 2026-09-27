@@ -35,6 +35,22 @@ LOG_DIR="${LOG_DIR:-/var/log/hermes-watchdog}"
 NOTIFY="${NOTIFY:-$(dirname "$0")/notify.sh}"
 OPERATOR_CMD="${OPERATOR_CMD:-}"
 
+# The agent cage, when this host has it: agent-cage (from kit-bootstrap,
+# https://github.com/MichaelZelbel/kit-bootstrap, `agent-cage.sh install` as root)
+# runs the one-shot in its own cage, at most one CPU core, and ends it together
+# with everything it started once RUN_TIMEOUT plus a minute is up, even if this
+# script is gone by then. Without it, `timeout` below still bounds the call.
+# Added after 2026-09-21, when an agent's command outlived its caller for 5.4
+# days. AGENT_CAGE_BIN picks another binary; an empty one switches the cage off.
+AGENT_CAGE_BIN="${AGENT_CAGE_BIN-$(command -v agent-cage 2>/dev/null || echo /usr/local/bin/agent-cage)}"
+CAGE=""
+if [ -n "$AGENT_CAGE_BIN" ] && [ -x "$AGENT_CAGE_BIN" ]; then
+  case "$RUN_TIMEOUT" in
+    ''|*[!0-9]*) CAGE="$AGENT_CAGE_BIN --max 1h --" ;;
+    *) CAGE="$AGENT_CAGE_BIN --max $((RUN_TIMEOUT + 60))s --" ;;
+  esac
+fi
+
 name="${1:-}"
 case "$name" in
   hourly-quick-repair|six-hour-deep-check|update-maintenance) ;;
@@ -77,11 +93,11 @@ HEADER
   cat "$prompt_file"
 }
 
-# shellcheck disable=SC2086  # OPERATOR_CMD is a deliberate word-split prefix
+# shellcheck disable=SC2086  # OPERATOR_CMD and CAGE are deliberate word-split prefixes
 if [ -n "$OPERATOR_CMD" ]; then
-  out="$(cd "$REPO" && timeout "$RUN_TIMEOUT" $OPERATOR_CMD "$HERMES_BIN" -z "$(render_prompt)" </dev/null 2>&1 | redact)"
+  out="$(cd "$REPO" && $CAGE timeout "$RUN_TIMEOUT" $OPERATOR_CMD "$HERMES_BIN" -z "$(render_prompt)" </dev/null 2>&1 | redact)"
 else
-  out="$(cd "$REPO" && HERMES_HOME="$WATCHDOG_HOME" timeout "$RUN_TIMEOUT" "$HERMES_BIN" -z "$(render_prompt)" </dev/null 2>&1 | redact)"
+  out="$(cd "$REPO" && HERMES_HOME="$WATCHDOG_HOME" $CAGE timeout "$RUN_TIMEOUT" "$HERMES_BIN" -z "$(render_prompt)" </dev/null 2>&1 | redact)"
 fi
 rc=$?
 {

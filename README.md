@@ -47,6 +47,19 @@ Three layers, and the order is the argument:
   runs the checks, repairs only what the runbook allows, and reports through `hermes send`. It runs
   under its own profile so its memory and sessions never mix with the gateway's.
 
+### The agent cage
+
+On 2026-09-21 an AI agent's search ran with an empty variable, covered the whole disk, kept running
+after the agent hung up, and held a CPU core for 5.4 days until the hosting company throttled the
+server. So the agent jobs run caged when the server has `agent-cage` from
+[kit-bootstrap](https://github.com/MichaelZelbel/kit-bootstrap): `templates/cron.example` puts
+`/usr/local/bin/agent-cage --max <time> --` in front of each one, and `selftest.sh` and
+`run-prompt.sh` use it by themselves whenever it is installed, so each Hermes run ends at its limit
+together with everything it started. Without the cage they work as before, bounded by `timeout`.
+Install it once as root (`bash agent-cage.sh install`, commands in the header of `cron.example`),
+then `bash agent-cage.sh check` says whether every piece is in place and `/var/log/agent-cage.log`
+records what it stopped.
+
 ## Which one do you want?
 
 | | This project | hermes-claude-code-devops-watchdog |

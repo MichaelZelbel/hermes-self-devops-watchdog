@@ -41,6 +41,22 @@ NOTIFY="${NOTIFY:-$(dirname "$0")/notify.sh}"
 ALERT_EVERY="${ALERT_EVERY:-21600}"
 OPERATOR_CMD="${OPERATOR_CMD:-}"
 
+# The agent cage, when this host has it: agent-cage (from kit-bootstrap,
+# https://github.com/MichaelZelbel/kit-bootstrap, `agent-cage.sh install` as root)
+# runs the one-shot in its own cage, at most one CPU core, and ends it together
+# with everything it started once PROBE_TIMEOUT plus a minute is up, even if this
+# script is gone by then. Without it, `timeout` below still bounds the call.
+# Added after 2026-09-21, when an agent's command outlived its caller for 5.4
+# days. AGENT_CAGE_BIN picks another binary; an empty one switches the cage off.
+AGENT_CAGE_BIN="${AGENT_CAGE_BIN-$(command -v agent-cage 2>/dev/null || echo /usr/local/bin/agent-cage)}"
+CAGE=""
+if [ -n "$AGENT_CAGE_BIN" ] && [ -x "$AGENT_CAGE_BIN" ]; then
+  case "$PROBE_TIMEOUT" in
+    ''|*[!0-9]*) CAGE="$AGENT_CAGE_BIN --max 1h --" ;;
+    *) CAGE="$AGENT_CAGE_BIN --max $((PROBE_TIMEOUT + 60))s --" ;;
+  esac
+fi
+
 mkdir -p "$(dirname "$LOG_FILE")" "$STATE_DIR" 2>/dev/null || true
 ts()  { date -u +%Y-%m-%dT%H:%M:%SZ; }
 log() { printf '%s | %s\n' "$(ts)" "$*" >> "$LOG_FILE"; }
@@ -84,11 +100,11 @@ if [ -z "$OPERATOR_CMD" ] && [ ! -d "$WATCHDOG_HOME" ]; then
   log "$msg"; alert "$msg"; exit 20
 fi
 
-# shellcheck disable=SC2086  # OPERATOR_CMD is a deliberate word-split prefix
+# shellcheck disable=SC2086  # OPERATOR_CMD and CAGE are deliberate word-split prefixes
 if [ -n "$OPERATOR_CMD" ]; then
-  out="$(cd / && timeout "$PROBE_TIMEOUT" $OPERATOR_CMD "$HERMES_BIN" -z "reply with the single word: ok" </dev/null 2>&1 | redact)"
+  out="$(cd / && $CAGE timeout "$PROBE_TIMEOUT" $OPERATOR_CMD "$HERMES_BIN" -z "reply with the single word: ok" </dev/null 2>&1 | redact)"
 else
-  out="$(cd / && HERMES_HOME="$WATCHDOG_HOME" timeout "$PROBE_TIMEOUT" "$HERMES_BIN" -z "reply with the single word: ok" </dev/null 2>&1 | redact)"
+  out="$(cd / && HERMES_HOME="$WATCHDOG_HOME" $CAGE timeout "$PROBE_TIMEOUT" "$HERMES_BIN" -z "reply with the single word: ok" </dev/null 2>&1 | redact)"
 fi
 rc=$?
 
