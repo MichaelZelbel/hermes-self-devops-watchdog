@@ -63,16 +63,16 @@ ran_through_sudo() { grep -q "^sudo -n $W/bin/mc-notify" "$SUDO_LOG"; }
 if [ "$(id -u)" -eq 0 ]; then
   ok "11-16 skipped: root needs no way across, so there is nothing to choose (run as the service user)"
 else
-  [ "$(SUDO_RULE_RC=1 mission control "needs a look")" = "0" ] && [ -f "$HN_ARGS" ] && ! ran_through_sudo \
+  [ "$(SUDO_RULE_RC=1 godspeed "needs a look")" = "0" ] && [ -f "$HN_ARGS" ] && ! ran_through_sudo \
     && ok "11 no rule for this binary: mc-notify is called directly, nothing hops" || bad "11 hopped through sudo without a rule" "$(cat "$SUDO_LOG")"
-  [ "$(SUDO_RULE_RC=0 mission control "needs a look")" = "0" ] && ran_through_sudo \
+  [ "$(SUDO_RULE_RC=0 godspeed "needs a look")" = "0" ] && ran_through_sudo \
     && ok "12 a rule that already exists is used" || bad "12 an existing rule was ignored" "$(cat "$SUDO_LOG")"
   [ "$(SUDO_RULE_RC=0 NOTIFY_SUDO="" godspeed "needs a look")" = "0" ] && [ -f "$HN_ARGS" ] && [ ! -s "$SUDO_LOG" ] \
     && ok "13 NOTIFY_SUDO=\"\" never hops and never even asks sudo" || bad "13 sudo was touched although the host said never" "$(cat "$SUDO_LOG")"
   [ "$(SUDO_RULE_RC=1 NOTIFY_SUDO="sudo -n" godspeed "needs a look")" = "0" ] && ran_through_sudo && ! grep -q -- "-n -l" "$SUDO_LOG" \
     && ok "14 NOTIFY_SUDO=\"sudo -n\" always hops, without probing" || bad "14 the explicit hop was not taken" "$(cat "$SUDO_LOG")"
   grep -q -- "--lane card" "$HN_ARGS" && ok "15 the card lane still reaches mc-notify with its arguments" || bad "15 arguments lost" "$(cat "$HN_ARGS" 2>/dev/null)"
-  NOTIFY_STATUS="repaired automatically" HN_ERR="mc-notify: cannot read /etc/godspeed/secret: Permission denied" SUDO_RULE_RC=1 mission control "restarted it" >/dev/null
+  NOTIFY_STATUS="repaired automatically" HN_ERR="mc-notify: cannot read /etc/godspeed/secret: Permission denied" SUDO_RULE_RC=1 godspeed "restarted it" >/dev/null
   grep -q "Permission denied" "$W/notify.log" \
     && ok "16 when the ledger is not reached, the log carries mc-notify's own words" || bad "16 the cause was swallowed" "$(tail -2 "$W/notify.log")"
 fi
