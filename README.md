@@ -32,6 +32,7 @@ Configure yourself as the Hermes watchdog for this server. Start here: https://r
 
 ```text
 machine cron (every 5 min)  ->  floor/quick-check.sh   (shell: is the gateway alive? restart once if not)
+machine cron (every 5 min)  ->  floor/stale-check.sh   (shell: is it running older code than is on disk? restart once if so)
 machine cron (every 5 min)  ->  templates/selftest.sh   (shell: can the watchdog Hermes answer at all?)
 machine cron (hourly, 6h)   ->  hermes -z "<prompt>"    (the watchdog Hermes: diagnose, repair within bounds, report)
 any of the above            ->  hermes send -t telegram (alert; no model, no agent loop)
@@ -116,8 +117,8 @@ exists to catch. See `templates/selftest.sh`.
 - `AGENT_START.md`: where the watchdog Hermes starts; boundaries, dry run, schedule.
 - `AGENTS.md`: the rules Hermes reads by name when it works in this repository.
 - `hermes-devops-runbook.md`: operational policy, what may be repaired without asking, what may not.
-- `floor/FLOOR.md` and `floor/fetch-floor.sh`: the shared deterministic floor, fetched from its one
-  upstream at a pinned tag and verified by hash. Never edited here.
+- `floor/FLOOR.md` and `floor/fetch-floor.sh`: the shared deterministic floor (`quick-check.sh` and
+  `stale-check.sh`), fetched from its one upstream at a pinned commit and verified by hash. Never edited here.
 - `prompts/hourly-quick-repair.md`, `prompts/six-hour-deep-check.md`, `prompts/update-maintenance.md`:
   the three operator prompts.
 - `templates/selftest.sh`: the healer liveness probe.

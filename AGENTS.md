@@ -10,7 +10,7 @@ You are Hermes, and this repository makes you the DevOps watchdog for a Hermes A
 - If you add an auto-repair action, document why it is safe and how its result is verified.
 - Treat provider credentials, messaging tokens, `auth.json`, memories, sessions and chat logs as
   sensitive. Never print them, quote them, or copy them.
-- `floor/quick-check.sh` is fetched from its upstream and verified by hash. Do not edit it here; if
-  it is wrong, the fix goes upstream.
+- `floor/quick-check.sh` and `floor/stale-check.sh` are fetched from their upstream and verified by hash.
+  Do not edit them here; if one is wrong, the fix goes upstream.
 - Test output, not exit codes, when a shell wrapper inspects a Hermes one-shot. A run that reached no
   model exits 0.

@@ -9,7 +9,7 @@ So the three layers run as two users:
 
 | Layer | Runs as | Why |
 |---|---|---|
-| Floor (`floor/quick-check.sh`) | **root**, root's crontab | `systemctl restart` of a system unit needs root. The floor's probes take `HERMES_USER`, `HERMES_HOME`, `HERMES_BIN` and hop to the service user for the `hermes gateway status` probe with `sudo -n -u`. |
+| Floor (`floor/quick-check.sh`, `floor/stale-check.sh`) | **root**, root's crontab | `systemctl restart` of a system unit needs root. The floor's probes take `HERMES_USER`, `HERMES_HOME`, `HERMES_BIN` and hop to the service user for the `hermes gateway status` probe with `sudo -n -u`. |
 | Self-check (`templates/selftest.sh`) | root's crontab, operator run **as the service user** through `OPERATOR_CMD` | The probe must run under the service user's watchdog profile, where the shared sign-in lives. |
 | Operator (`templates/run-prompt.sh`) | same | Same reason; and its writes land in the service user's profile, not root's home. |
 | Alerts (`templates/notify.sh`) | `hermes send` **as the service user** through `SEND_CMD` | The platform credentials are in the service user's Hermes. |
@@ -42,6 +42,7 @@ FLOOR_LOG=/var/log/hermes-watchdog/quick.log
 FLOOR_STATE=
 
 */5 * * * *  /opt/hermes-watchdog/floor/quick-check.sh
+*/5 * * * *  /opt/hermes-watchdog/floor/stale-check.sh
 */5 * * * *  /opt/hermes-watchdog/templates/selftest.sh
 7 * * * *    /opt/hermes-watchdog/templates/run-prompt.sh hourly-quick-repair
 23 */6 * * * /opt/hermes-watchdog/templates/run-prompt.sh six-hour-deep-check

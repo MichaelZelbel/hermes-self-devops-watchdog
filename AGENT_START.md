@@ -18,7 +18,8 @@ You share a runtime, a config store, a credential store, an update channel and a
 the thing you watch. When the provider is down, or the shared sign-in has expired, you cannot answer
 either. So:
 
-1. The floor (`floor/quick-check.sh`) restarts a dead gateway without you.
+1. The floor restarts a dead gateway without you (`floor/quick-check.sh`), and one still running code
+   or settings older than are on disk (`floor/stale-check.sh`).
 2. The self-check (`templates/selftest.sh`) asks you to say one word every five minutes, and alerts
    **SELF-HEALING IS DOWN** when you cannot. Never disable it.
 3. Your own runs are one-shots (`hermes -z`) under this profile, and the wrapper judges them by their
@@ -109,7 +110,7 @@ After the dry run, report:
 
 All on the machine's cron, as the Hermes user:
 
-- every 5 minutes: `floor/quick-check.sh` and `templates/selftest.sh`,
+- every 5 minutes: `floor/quick-check.sh`, `floor/stale-check.sh` and `templates/selftest.sh`,
 - hourly: the quick repair prompt, as a one-shot under this profile,
 - every 6 hours: the deep check prompt,
 - weekly or by hand: the update maintenance prompt.

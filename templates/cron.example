@@ -4,8 +4,8 @@
 # Assumes the checkout at /opt/hermes-watchdog and the floor fetched once with
 #   /opt/hermes-watchdog/floor/fetch-floor.sh
 #
-# quick-check.sh's defaults assume the Hermes user is "hermes"; set HERMES_USER,
-# HERMES_HOME and HERMES_BIN if yours differs (see the header of the fetched file).
+# quick-check.sh's and stale-check.sh's defaults assume the Hermes user is "hermes"; set
+# HERMES_USER, HERMES_HOME and HERMES_BIN if yours differs (see the headers of the fetched files).
 
 # The agent jobs (2 and 3) run through agent-cage: their own cage, at most one CPU
 # core, and ended together with everything they started at --max, even when
@@ -18,7 +18,7 @@
 # Without it, drop the "/usr/local/bin/agent-cage --max ... --" in front of each
 # job: selftest.sh and run-prompt.sh still bound their Hermes call with timeout,
 # and they use agent-cage by themselves whenever it is installed. The floor
-# (job 1) is plain shell and stays outside the cage.
+# (jobs 1 and 1b) is plain shell and stays outside the cage.
 # Run from a normal user's crontab, agent-cage cannot join the system cage and
 # falls back to timeout plus nice: the time limit still holds for the whole job.
 
@@ -27,6 +27,8 @@ HERMES_USER=hermes
 
 # 1. the floor: is the gateway alive? restart once if not
 */5 * * * *  /opt/hermes-watchdog/floor/quick-check.sh
+# 1b. stale code: restart a gateway running older code or settings than are on disk
+*/5 * * * *  /opt/hermes-watchdog/floor/stale-check.sh
 # 2. the self-check: can the watchdog Hermes answer one word?
 */5 * * * *  /usr/local/bin/agent-cage --max 10m -- /opt/hermes-watchdog/templates/selftest.sh
 # 3. the operator: diagnose, repair within bounds, report

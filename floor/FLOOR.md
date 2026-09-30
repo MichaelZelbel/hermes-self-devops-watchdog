@@ -12,15 +12,17 @@ lines differed, and `kit-bootstrap` exists to end that.
 
 ## How it is consumed
 
-`floor/PIN` names a commit and the SHA-256 of the file at that commit:
+`floor/PIN` names a commit and the SHA-256 of each file at that commit:
 
 ```text
-COMMIT=607e798fd68d254cd5006fe3041e8d9df9e6cad5
-SHA256=2436985f3201d411416e117acc1785b9f4d06941dcfabc57a6e1eca94aa36839
+COMMIT=624a51c81e3f933ac3b39723c46b8e23a90d3fa6
+SHA256=81d343cf1f081611595fe1caad5407a1be2a22799a1077cf8ecabfc31e7361a4
+STALE_SHA256=00049e13cfa28065db49fc097f4aa69b280dea9fbd046fff70a3ba70d7be1233
 ```
 
-`floor/fetch-floor.sh` downloads the file at exactly that commit and refuses it unless the hash
-matches. Nothing is written on a mismatch. The fetched copy, `floor/quick-check.sh`, is ignored by git.
+`floor/fetch-floor.sh` downloads both files at exactly that commit and refuses them unless both hashes
+match. Nothing is written on a mismatch, not even the file that matched. The fetched copies,
+`floor/quick-check.sh` and `floor/stale-check.sh`, are ignored by git.
 
 A commit, not a branch or a tag, because branches move and tags can be moved; a hash, because a raw
 file URL is a network fetch and the thing that restarts your gateway deserves to be verified before it
@@ -34,10 +36,11 @@ tick. Measured on 2026-09-02 on a Telegram-less test gateway before the guard ex
 ## Moving the pin
 
 1. Read the upstream diff between the pinned commit and the candidate.
-2. Put the candidate commit and the new hash into `floor/PIN`
-   (`curl -fsSL https://raw.githubusercontent.com/MichaelZelbel/hermes-claude-code-devops-watchdog/<commit>/templates/quick-check.sh | sha256sum`).
+2. Put the candidate commit and both new hashes into `floor/PIN`
+   (`curl -fsSL https://raw.githubusercontent.com/MichaelZelbel/hermes-claude-code-devops-watchdog/<commit>/templates/<file> | sha256sum`
+   for `quick-check.sh` and `stale-check.sh`).
 3. Run `tests/test-floor-pin.sh`. It fetches and verifies.
-4. Commit the two-line change with the reason.
+4. Commit the three-line change with the reason.
 
 ## What the floor decides, and what it does not
 
@@ -60,3 +63,16 @@ Pinned since 2026-09-02 (later the same day) at upstream `d7e26ca` (main): probe
 time. The old order returned a days-old line after any restart on a host with a rotated log, and the floor
 restarted a healthy, connected gateway on every tick: four restarts in seventeen minutes on the author's
 server before it was caught.
+
+## Two files at one commit (since v1.0.13)
+
+Since upstream `v1.2.0` the floor is two files. `stale-check.sh` answers a question `quick-check.sh`
+cannot: is a gateway that is up running older code or settings than are on disk? That happens when the
+Hermes files change under a running gateway. Python keeps the code it already loaded and loads the rest
+fresh, so old and new code meet, and the gateway answers every message with an error while every
+liveness signal says it is fine. One restart fixes it.
+
+It is a separate script, not a change to `quick-check.sh`, because the floor's contract stays "is it
+alive, restart once if dead". Staleness has its own cron line, its own state, its own one-hour cooldown
+and its own lock, so a bug in one cannot turn into restarts by the other. Both are pinned at one commit
+and verified together, so the two never come from different versions.
