@@ -51,8 +51,16 @@ fetch_verify() { # fetch_verify <path-in-repo> <sha256> <tmpfile>
 }
 fetch_verify templates/quick-check.sh "$SHA256" "$tq" || exit 1
 fetch_verify templates/stale-check.sh "$STALE_SHA256" "$tsx" || exit 1
-mkdir -p "$DEST_DIR"
+# Both land under temporary names beside their destinations first, then are
+# renamed into place, so a failed write leaves the old pair, never half a new one.
+# A write that fails is a failure: the installer trusts this exit code.
+nq="$DEST_DIR/.quick-check.sh.new.$$"; ns="$DEST_DIR/.stale-check.sh.new.$$"
+trap 'rm -f "$tq" "$tsx" "$nq" "$ns"' EXIT
 # chmod again after install: install's mode is not honoured on every filesystem
-install -m 0755 "$tq" "$DEST" && chmod +x "$DEST"
-install -m 0755 "$tsx" "$DEST_DIR/stale-check.sh" && chmod +x "$DEST_DIR/stale-check.sh"
+if ! { mkdir -p "$DEST_DIR" && install -m 0755 "$tq" "$nq" && chmod +x "$nq" \
+       && install -m 0755 "$tsx" "$ns" && chmod +x "$ns"; } 2>/dev/null; then
+  echo "fetch-floor: could not write to $DEST_DIR; the floor there is unchanged" >&2; exit 1
+fi
+mv -f "$nq" "$DEST" && mv -f "$ns" "$DEST_DIR/stale-check.sh" \
+  || { echo "fetch-floor: could not move the floor into $DEST_DIR" >&2; exit 1; }
 echo "floor: quick-check.sh and stale-check.sh at $COMMIT verified and written to $DEST_DIR"

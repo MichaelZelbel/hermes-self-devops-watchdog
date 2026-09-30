@@ -15,9 +15,9 @@ lines differed, and `kit-bootstrap` exists to end that.
 `floor/PIN` names a commit and the SHA-256 of each file at that commit:
 
 ```text
-COMMIT=624a51c81e3f933ac3b39723c46b8e23a90d3fa6
+COMMIT=d4166c20e7ee404b48cf8b72e5832999b79ae1ee
 SHA256=81d343cf1f081611595fe1caad5407a1be2a22799a1077cf8ecabfc31e7361a4
-STALE_SHA256=00049e13cfa28065db49fc097f4aa69b280dea9fbd046fff70a3ba70d7be1233
+STALE_SHA256=e38f18fbd1a49cccc414b87094c8055f38a39d727c3203ddb0d6b9a59ee0d50a
 ```
 
 `floor/fetch-floor.sh` downloads both files at exactly that commit and refuses them unless both hashes
@@ -76,3 +76,7 @@ It is a separate script, not a change to `quick-check.sh`, because the floor's c
 alive, restart once if dead". Staleness has its own cron line, its own state, its own one-hour cooldown
 and its own lock, so a bug in one cannot turn into restarts by the other. Both are pinned at one commit
 and verified together, so the two never come from different versions.
+
+Pinned since v1.0.14 at upstream `v1.2.1` (`d4166c2`), a security fix. Run as root, `stale-check.sh`
+wrote its drain marker and asked the `hermes` CLI as root, inside files the Hermes user controls. A
+symlink or a program that user planted could give it root. Both now run as the Hermes user.

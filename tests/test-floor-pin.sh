@@ -71,5 +71,11 @@ printf 'COMMIT=%s\nSHA256=%s\nSTALE_SHA256=%s\n' "$A40" "$hq" "$hs" > "$W/floor/
 mkdir -p "$W/o9"; FLOOR_BASE="$BASE_URL" bash "$W/floor/fetch-floor.sh" "$W/o9/quick-check.sh" >/dev/null 2>"$W/err"; rc=$?
 [ "$rc" -eq 0 ] && [ -x "$W/o9/quick-check.sh" ] && [ -x "$W/o9/stale-check.sh" ] && ok "9 both hashes match: both files written and executable" || bad "9 good pair failed" "rc=$rc $(cat "$W/err")"
 
+# 10. Both verify but the destination cannot be written: a failure, never "verified and written".
+printf 'COMMIT=%s\nSHA256=%s\nSTALE_SHA256=%s\n' "$A40" "$hq" "$hs" > "$W/floor/PIN"
+: > "$W/not-a-dir"
+FLOOR_BASE="$BASE_URL" bash "$W/floor/fetch-floor.sh" "$W/not-a-dir/quick-check.sh" >"$W/out10" 2>"$W/err"; rc=$?
+[ "$rc" -ne 0 ] && ! grep -q "verified and written" "$W/out10" && ok "10 a destination that cannot be written is a failure, not a success" || bad "10 failed write reported as success" "rc=$rc $(cat "$W/out10")"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
