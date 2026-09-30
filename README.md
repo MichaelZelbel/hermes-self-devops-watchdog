@@ -9,6 +9,9 @@ This is the sister project of
 which puts a different company's tool on the pager. The two share one deterministic floor and differ
 in who holds the phone. Read [Which one do you want?](#which-one-do-you-want) before choosing.
 
+Made by Michael Zelbel, who also builds [Godspeed Mission Control](https://godspeedmissioncontrol.com),
+a free personal AI you run yourself.
+
 ## TL;DR
 
 1. Install Hermes Agent on your VPS, as the user that will run the gateway.
@@ -133,7 +136,27 @@ exists to catch. See `templates/selftest.sh`.
 
 This watchdog is free and MIT licensed, and it stays that way.
 
-If it saved you time and you want to support the work, you can [buy me a coffee on Ko-fi](https://ko-fi.com/michaelc0de). Either way, thanks for using the watchdog.
+There is also an extended build, the Hermes Self-Ops Kit, free on Ko-fi. Its one-line installer sets
+up this watchdog for you, reads the deny rules back and tests them, and adds a security baseline,
+backup and cost checks, safe upgrades, incident playbooks and the
+[Chrome Agent Bridge](https://github.com/MichaelZelbel/chrome-agent-bridge), so your agent can use a
+real, logged-in browser on your own computer.
+
+[Get the Hermes Self-Ops Kit free on Ko-fi](https://ko-fi.com/s/61564ec2b5)
+
+If it saved you time and you want to support the work, you can buy me a coffee there too. Either way,
+thanks for using the watchdog.
+
+## Related projects
+
+- [hermes-claude-code-devops-watchdog](https://github.com/MichaelZelbel/hermes-claude-code-devops-watchdog),
+  the sister project with Claude Code on the pager. Its kit is the
+  [Hermes DevOps Kit](https://ko-fi.com/s/29efd32495), also free.
+- The same watchdog for other agent servers:
+  [OpenClaw](https://github.com/MichaelZelbel/openclaw-claude-code-devops-watchdog) and
+  [Paperclip](https://github.com/MichaelZelbel/paperclip-devops-watchdog).
+- [Godspeed Mission Control](https://godspeedmissioncontrol.com): a free personal AI that lives in a
+  folder you own and wakes you only when it matters.
 
 ## Safety principle
 
