@@ -77,5 +77,14 @@ else
     && ok "16 when the ledger is not reached, the log carries mc-notify's own words" || bad "16 the cause was swallowed" "$(tail -2 "$W/notify.log")"
 fi
 
+# --- the bot lane says what the person does (2026-10-08) ---------------------
+# mc-notify delivers nothing on the bot lane without --act (its gate R-050), and
+# until 2026-10-08 notify.sh never passed one, so every urgent alert went to a log.
+NOTIFY_SUDO="" NOTIFY_DEDUP_SECONDS=0 NOTIFY_STATUS="still down, needs you" godspeed "the gateway stayed down" >/dev/null
+grep -q -- "--lane bot" "$HN_ARGS" && grep -q -- "--act Tell Mission Control to look at it now, or to leave it." "$HN_ARGS" \
+  && ok "17 an urgent alert goes on the bot lane with what to do about it" || bad "17 the bot lane carried no --act" "$(cat "$HN_ARGS" 2>/dev/null)"
+NOTIFY_SUDO="" NOTIFY_DEDUP_SECONDS=0 NOTIFY_STATUS="still down, needs you" NOTIFY_ACT="Approve the rollback." godspeed "the gateway stayed down" >/dev/null
+grep -q -- "--act Approve the rollback." "$HN_ARGS" && ok "18 NOTIFY_ACT says it in the caller's words" || bad "18 NOTIFY_ACT ignored" "$(cat "$HN_ARGS" 2>/dev/null)"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

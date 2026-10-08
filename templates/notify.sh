@@ -52,7 +52,9 @@
 #   NOTIFY_TOPIC    mc-notify card lane: one open card per topic per day
 #                   (default hermes-watchdog)
 #   NOTIFY_PROFILE / NOTIFY_ROUTE / NOTIFY_SOURCE   mc-notify bot lane (godspeed, watchdog, hermes-self-ops-kit)
-#   GODSPEED_NOTIFY      path of mc-notify (default /usr/local/bin/mc-notify)
+#   NOTIFY_ACT      mc-notify bot lane: what the person does about it, in one line. mc-notify
+#                   delivers nothing on the bot lane without it (default: look at it, or leave it)
+#   GODSPEED_NOTIFY     path of mc-notify (default /usr/local/bin/mc-notify)
 #   NOTIFY_SUDO     how a non-root caller crosses to mc-notify: auto (default: only
 #                   through a sudo rule that already exists) | "" never | "sudo -n" always
 #   HERMES_BIN      hermes CLI (default: ~/.local/bin/hermes)
@@ -77,6 +79,11 @@ NOTIFY_DEDUP_SECONDS="${NOTIFY_DEDUP_SECONDS:-86400}"
 NOTIFY_TOPIC="${NOTIFY_TOPIC:-hermes-watchdog}"
 GODSPEED_NOTIFY="${GODSPEED_NOTIFY:-/usr/local/bin/mc-notify}"
 NOTIFY_PROFILE="${NOTIFY_PROFILE:-godspeed}"
+# Since 2026-09-14 mc-notify refuses a bot-lane send that does not say what the person
+# does about it, and logs it instead of sending (its gate R-050). Until 2026-10-08 this
+# script never said, so every urgent alert it raised on a mission control host went to
+# that log and reached nobody.
+NOTIFY_ACT="${NOTIFY_ACT:-Tell Mission Control to look at it now, or to leave it.}"
 NOTIFY_ROUTE="${NOTIFY_ROUTE:-watchdog}"
 NOTIFY_SOURCE="${NOTIFY_SOURCE:-hermes-self-ops-kit}"
 HERMES_BIN="${HERMES_BIN:-$HOME/.local/bin/hermes}"
@@ -216,7 +223,7 @@ if [ "$sender" = "mc-notify" ]; then
   fi
   runner
   out="$("${RUNNER[@]}" --lane bot --profile "$NOTIFY_PROFILE" --route "$NOTIFY_ROUTE" --source "$NOTIFY_SOURCE" \
-          --summary "$body" --status "$status" 2>&1)"
+          --summary "$body" --status "$status" --act "$NOTIFY_ACT" 2>&1)"
   rc=$?
   if [ "$rc" -eq 0 ]; then
     note="sent via mc-notify bot lane (profile=$NOTIFY_PROFILE route=$NOTIFY_ROUTE, $status)"

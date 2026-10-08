@@ -25,7 +25,10 @@ its reader to stop reading it. `NOTIFY_QUIET` and `NOTIFY_URGENT` move statuses 
 
 On a mission control host, `templates/notify.sh` finds `/usr/local/bin/mc-notify` and uses its lanes: the bot
 lane for urgent (Mission Control bot writes the words itself, so a reply lands in a conversation that can
-answer), the card lane for card, the record lane for quiet. No bot token is read or passed.
+answer), the card lane for card, the record lane for quiet. No bot token is read or passed. The bot
+lane always says what the person does about it (`--act`, from `NOTIFY_ACT`, default "Tell Mission
+Control to look at it now, or to leave it."): mc-notify delivers nothing on that lane without it,
+and until 2026-10-08 every urgent alert from this script went to its log for that reason.
 
 Everywhere else: `hermes send -t <target>`. It reuses the platform credentials the gateway already
 holds, so:
